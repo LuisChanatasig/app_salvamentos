@@ -1,0 +1,44 @@
+﻿/* topbar.css */
+
+/* El texto comienza oculto y desplazado a la izquierda */
+.logo-text {
+    /* Degradado de izquierda (naranja) a derecha (blanco) */
+    background: linear-gradient(90deg, #E97B34 0%, #9b9da5 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    /* Resto de estilos */
+    opacity: 0;
+    transform: translateX(-8px);
+    /* Transición más lenta y con retardo */
+    transition: opacity 0.8s ease 0.3s, /* dura 0.8s, empieza 0.3s después */
+    transform 0.8s ease 0.3s; /* idem para el desplazamiento */
+
+    font-size: 1.25rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* Cuando el logo gana la clase .loaded, aparece el texto */
+.logo-anim.loaded .logo-text {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* También al hacer hover sobre el logo */
+.logo-anim:hover .logo-text {
+    opacity: 1;
+    transform: translateX(0); /* fíjalo en 0 para que no salte */
+}
+
+/* Ajuste de tamaño del icono y espacio entre icono y texto */
+.logo-icon {
+    height: 40px;
+    width: auto;
+}
+
+/* Para pantallas reducidas, ocultar el texto */
+@media (max-width: 767px) {
+    .logo-text {
+        display: none;
+    }
+}

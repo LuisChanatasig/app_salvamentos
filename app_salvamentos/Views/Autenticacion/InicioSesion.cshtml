@@ -1,0 +1,205 @@
+﻿@{
+    ViewBag.Title = "Iniciar Sesión";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>@ViewBag.Title – Autopiezas</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Velzon & Bootstrap CSS -->
+    <link href="~/assets/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="~/assets/css/icons.min.css" rel="stylesheet" />
+    <link href="~/assets/css/app.min.css" rel="stylesheet" />
+    <link href="~/assets/css/custom.min.css" rel="stylesheet" />
+    <link href="~/assets/css/login.css" rel="stylesheet" />
+
+
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay"><i class="ri-settings-5-fill gear"></i></div>
+
+    <div class="auth-one-bg min-vh-100 d-flex align-items-center">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-xl-8">
+                    <div class="card auth-card shadow-lg border-0 rounded-3 h-100">
+                        <div class="row g-0 h-100">
+
+                            <!-- Zona Dinámica de Imágenes -->
+                            <div class="col-12 col-lg-5 img-col bg-light align-items-center justify-content-center p-0 overflow-hidden">
+                                <div class="position-relative w-100 h-100">
+                                    <img id="bgImage"
+                                         src="~/assets/images/Salvamentos/logo_inicio.png"
+                                         alt="Fondo dinámico"
+                                         class="position-absolute top-0 start-0 w-100 h-100 object-fit-cover bg-blur" />
+                                    <img id="fgImage"
+                                         src="~/assets/images/Salvamentos/logo_inicio.png"
+                                         alt="Detalle dinámico"
+                                         class="position-absolute top-50 start-50 translate-middle fg-image" />
+                                </div>
+                            </div>
+
+                            <!-- Formulario de Login -->
+                            <div class="col-12 col-lg-7 p-4 p-sm-5">
+                                <div class="text-center mb-4">
+                                    <h4 class="text-primary mb-1">Bienvenido a Autopiezas</h4>
+                                    <p class="text-muted mb-0">Inicia sesión para continuar</p>
+                                </div>
+
+                                <form id="loginForm" class="needs-validation" novalidate>
+                                    <div class="mb-3">
+                                        <label for="Email" class="form-label">Usuario</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="ri-mail-fill"></i></span>
+                                            <input type="text"
+                                                   class="form-control form-control-lg"
+                                                   id="Email"
+                                                   name="Email"
+                                                   placeholder="Ingrese su usuario"
+                                                   required />
+                                            <div class="invalid-feedback">Por favor ingresa tu usuario.</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 form-password-toggle">
+                                        <label for="Password" class="form-label">Contraseña</label>
+                                        <div class="input-group auth-pass-inputgroup">
+                                            <span class="input-group-text"><i class="ri-lock-fill"></i></span>
+                                            <input type="password"
+                                                   class="form-control form-control-lg"
+                                                   id="Password"
+                                                   name="Password"
+                                                   placeholder="Ingrese su contraseña"
+                                                   required />
+                                            <span class="input-group-text bg-white cursor-pointer"
+                                                  id="password-addon"><i class="ri-eye-fill"></i></span>
+                                            <div class="invalid-feedback">Por favor ingresa tu contraseña.</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row mb-4 align-items-center">
+                                        <div class="col-6">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="rememberMe" />
+                                                <label class="form-check-label" for="rememberMe">Recuérdame</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 text-end">
+                                            <a href="#" class="link-primary">¿Olvidaste tu contraseña?</a>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-grid">
+                                        <button type="submit" class="btn btn-primary btn-lg waves-effect waves-light">
+                                            Iniciar sesión
+                                        </button>
+                                    </div>
+
+                                    <div class="mt-5 text-center">
+                                        <p class="text-muted mb-0">&copy; @DateTime.Now.Year Autopiezas. Todos los derechos reservados.</p>
+                                    </div>
+                                </form>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toastContainer"></div>
+
+    <script src="~/assets/libs/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="~/assets/js/app.min.js"></script>
+    <script>
+        (() => {
+            'use strict';
+            const forms = document.querySelectorAll('.needs-validation');
+            Array.from(forms).forEach(form => {
+                form.addEventListener('submit', e => {
+                    if (!form.checkValidity()) { e.preventDefault(); e.stopPropagation(); }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        })();
+
+        document.getElementById('password-addon').addEventListener('click', () => {
+            const input = document.getElementById('Password');
+            const icon = document.querySelector('#password-addon i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('ri-eye-fill', 'ri-eye-off-fill');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('ri-eye-off-fill', 'ri-eye-fill');
+            }
+        });
+
+        function showToast(message, type) {
+            const container = document.getElementById('toastContainer');
+            const toastEl = document.createElement('div');
+            toastEl.className = `toast align-items-center text-bg-${type} border-0`;
+            toastEl.setAttribute('role','alert');
+            toastEl.setAttribute('aria-live','assertive');
+            toastEl.setAttribute('aria-atomic','true');
+            toastEl.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>`;
+            container.appendChild(toastEl);
+            const bsToast = new bootstrap.Toast(toastEl,{delay:5000});
+            bsToast.show();
+            toastEl.addEventListener('hidden.bs.toast',()=>toastEl.remove());
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const slides = [
+                { bg:'@Url.Content("~/assets/images/Salvamentos/logo_inicio.png")', fg:'@Url.Content("~/assets/images/Salvamentos/logo_inicio.png")' },
+                { bg:'@Url.Content("~/assets/images/Salvamentos/tercero.png")', fg:'@Url.Content("~/assets/images/Salvamentos/tercero.png")' },
+            ];
+            let idx = 0;
+            const bgEl = document.getElementById('bgImage');
+            const fgEl = document.getElementById('fgImage');
+            setInterval(() => {
+                idx = (idx + 1) % slides.length;
+                bgEl.src = slides[idx].bg;
+                fgEl.src = slides[idx].fg;
+            }, 5000);
+
+            const form = document.getElementById('loginForm');
+            form.addEventListener('submit', async e => {
+                e.preventDefault();
+                if (!form.checkValidity()) { form.classList.add('was-validated'); return; }
+                document.getElementById('loadingOverlay').style.display = 'flex';
+
+                const email = document.getElementById('Email').value;
+                const password = document.getElementById('Password').value;
+                try {
+                    const response = await fetch('@Url.Action("Login", "Autenticacion")', {
+                        method: 'POST',
+                        headers: { 'Content-Type':'application/json' },
+                        body: JSON.stringify({ Email: email, Password: password })
+                    });
+                    const data = await response.json();
+                    if (response.ok) {
+                        window.location.href = '/Home/Index';
+                    } else {
+                        showToast(data.message || 'Error de autenticación','warning');
+                    }
+                } catch {
+                    showToast('Error de red','danger');
+                } finally {
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

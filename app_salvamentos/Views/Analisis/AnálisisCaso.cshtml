@@ -1,0 +1,72 @@
+﻿@{
+    ViewBag.Title = "Análisis de Caso";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h5 class="mb-3">2. Análisis de Caso</h5>
+
+<ul class="nav nav-tabs nav-tabs-custom" id="analisisTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="tab-info-vehiculo" data-bs-toggle="tab"
+                data-bs-target="#infoVehiculo" type="button" role="tab">
+            Info Vehículo
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-documentos" data-bs-toggle="tab"
+                data-bs-target="#documentos" type="button" role="tab">
+            Documentos
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-valores" data-bs-toggle="tab"
+                data-bs-target="#valoresComerciales" type="button" role="tab">
+            Valores Comerciales
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-promedio" data-bs-toggle="tab"
+                data-bs-target="#calculoPromedio" type="button" role="tab">
+            Cálculo Promedio
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-partes" data-bs-toggle="tab"
+                data-bs-target="#partesDepreciacion" type="button" role="tab">
+            Partes & Depreciación
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-respaldo" data-bs-toggle="tab"
+                data-bs-target="#respaldoDanios" type="button" role="tab">
+            Respaldo Daños
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content mt-3" id="analisisTabsContent">
+    <div class="tab-pane fade show active" id="infoVehiculo" role="tabpanel">
+        @* Partial o bloque inline *@
+        @Html.Partial("Partials/_InfoVehiculo")
+    </div>
+
+    <div class="tab-pane fade" id="documentos" role="tabpanel">
+        @Html.Partial("Partials/_CargaDocumentos")
+    </div>
+
+    <div class="tab-pane fade" id="valoresComerciales" role="tabpanel">
+        @Html.Partial("Partials/_ValoresComerciales")
+    </div>
+
+    <div class="tab-pane fade" id="calculoPromedio" role="tabpanel">
+@*         @Html.Partial("Partials/_CalculoPromedio")
+ *@    </div>
+
+    <div class="tab-pane fade" id="partesDepreciacion" role="tabpanel">
+        @Html.Partial("Partials/_PartesYDepreciacion")
+    </div>
+
+    <div class="tab-pane fade" id="respaldoDanios" role="tabpanel">
+@*         @Html.Partial("Partials/_RespaldoDanios")
+ *@    </div>
+</div>

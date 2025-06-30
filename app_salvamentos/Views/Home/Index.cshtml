@@ -1,0 +1,127 @@
+﻿@using app_salvamentos.Helper
+@{
+    var ctx = ViewContext.HttpContext;
+    var perfilId = UsuarioSesionHelper.RolId(ctx);
+    var nombres = UsuarioSesionHelper.UsuarioLogin(ctx);
+    var perfilNombre = UsuarioSesionHelper.PerfilNombre(ctx);
+
+    ViewBag.Title = "Inicio";
+    ViewBag.pTitle = "Inicio";
+    ViewBag.pageTitle = "Inicio";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var successMessage = TempData["SuccessMessage"] as string;
+    var errorMessage = TempData["ErrorMessage"] as string;
+
+}
+
+@section styles {
+    <style>
+        /* Hover sobre cada tarjeta */
+        .card.card-animate:hover {
+            background-color: #F5F6F6;
+            transition: background-color 0.2s ease-in-out;
+        }
+        /* Opcional: puntero */
+        .card.card-animate:hover {
+            cursor: pointer;
+        }
+    </style>
+}
+
+<div class="page-content">
+    <div class="container-fluid">
+        <!-- Filas de tarjetas -->
+        <div class="row">
+            <!-- Casos -->
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-animate">
+                    <div class="card-body">
+                        <a href="@Url.Action("Index","Caso")" class="d-flex align-items-center">
+                            <div class="avatar-sm me-3">
+                                <span class="avatar-title rounded-circle bg-soft-primary text-secondary">
+                                    <i class="ri-folder-2-line fs-24"></i>
+                                </span>
+                            </div>
+                            <div>
+                                <p class="text-muted mb-1">Casos</p>
+                                <h5 class="mb-0">Ver detalle</h5>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <!-- Análisis -->
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-animate">
+                    <div class="card-body">
+                        <a href="@Url.Action("InfoVehiculo","Analisis")" class="d-flex align-items-center">
+                            <div class="avatar-sm me-3">
+                                <span class="avatar-title rounded-circle bg-soft-success text-success">
+                                    <i class="ri-search-eye-line fs-24"></i>
+                                </span>
+                            </div>
+                            <div>
+                                <p class="text-muted mb-1">Análisis</p>
+                                <h5 class="mb-0">Empezar</h5>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <!-- Revisión -->
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-animate">
+                    <div class="card-body">
+                        <a href="@Url.Action("Index","Revision")" class="d-flex align-items-center">
+                            <div class="avatar-sm me-3">
+                                <span class="avatar-title rounded-circle bg-soft-warning text-warning">
+                                    <i class="ri-file-list-3-line fs-24"></i>
+                                </span>
+                            </div>
+                            <div>
+                                <p class="text-muted mb-1">Revisión</p>
+                                <h5 class="mb-0">Ir a informes</h5>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <!-- Subastas -->
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-animate">
+                    <div class="card-body">
+                        <a href="@Url.Action("Enviar","Subasta")" class="d-flex align-items-center">
+                            <div class="avatar-sm me-3">
+                                <span class="avatar-title rounded-circle bg-soft-danger text-danger">
+                                    <i class="ri-send-plane-fill fs-24"></i>
+                                </span>
+                            </div>
+                            <div>
+                                <p class="text-muted mb-1">Subastas</p>
+                                <h5 class="mb-0">Enviar caso</h5>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <!-- Proveedores -->
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-animate">
+                    <div class="card-body">
+                        <a href="@Url.Action("Index","Proveedor")" class="d-flex align-items-center">
+                            <div class="avatar-sm me-3">
+                                <span class="avatar-title rounded-circle bg-soft-info text-info">
+                                    <i class="ri-team-line fs-24"></i>
+                                </span>
+                            </div>
+                            <div>
+                                <p class="text-muted mb-1">Proveedores</p>
+                                <h5 class="mb-0">Gestionar</h5>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div> <!-- container-fluid -->
+</div> <!-- page-content -->

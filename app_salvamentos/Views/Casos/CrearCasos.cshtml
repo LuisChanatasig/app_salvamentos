@@ -1,0 +1,40 @@
+﻿
+<ul class="nav nav-tabs" id="crearCasoTabs" role="tablist">
+    <li class="nav-item">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#datosAsegurado">
+            1. Asegurado
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#infoVehiculo">
+            2. Vehículo
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#docsIniciales">
+            3. Documentos
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content p-3 border">
+    <!-- 1. Datos del Asegurado -->
+    <div class="tab-pane fade show active" id="datosAsegurado">
+        <partial name="_FormAsegurado" model="Model" />
+        <button class="btn btn-primary float-end" onclick="nextTab()">Siguiente</button>
+    </div>
+
+    <!-- 2. Información del Vehículo -->
+    <div class="tab-pane fade" id="infoVehiculo">
+        <partial name="_FormVehiculo" model="Model" />
+        <button class="btn btn-secondary" onclick="prevTab()">Anterior</button>
+        <button class="btn btn-primary float-end" onclick="nextTab()">Siguiente</button>
+    </div>
+
+    <!-- 3. Documentación Inicial -->
+    <div class="tab-pane fade" id="docsIniciales">
+        <partial name="_FormDocumentos" model="Model" />
+        <button class="btn btn-secondary" onclick="prevTab()">Anterior</button>
+        <button type="submit" class="btn btn-success float-end">Crear Caso</button>
+    </div>
+</div>

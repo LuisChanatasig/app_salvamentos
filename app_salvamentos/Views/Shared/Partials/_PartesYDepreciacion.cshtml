@@ -1,0 +1,21 @@
+﻿@* Views/Analisis/_PartesYDepreciacion.cshtml *@
+<h6 class="text-uppercase text-muted mt-4 mb-3">Partes y Depreciación</h6>
+<div class="table-responsive">
+    <table class="table table-sm table-bordered">
+        <thead class="table-light">
+            <tr>
+                <th>Parte</th>
+                <th>Valor Nuevo</th>
+                <th>Valor Depreciado</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><input name="Parte1" class="form-control form-control-sm" /></td>
+                <td><input name="ValorNuevo1" type="number" step="0.01" class="form-control form-control-sm" /></td>
+                <td><input name="ValorDepreciado1" type="number" step="0.01" class="form-control form-control-sm" /></td>
+            </tr>
+            @* Agrega más filas según necesidad *@
+        </tbody>
+    </table>
+</div>

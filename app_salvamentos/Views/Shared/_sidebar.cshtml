@@ -1,0 +1,186 @@
+﻿@using app_salvamentos.Helper
+@{
+    var ctx = ViewContext.HttpContext;
+    var perfilId = UsuarioSesionHelper.RolId(ctx);
+}
+
+<div class="app-menu navbar-menu">
+    <!-- LOGO -->
+    <div class="navbar-brand-box">
+        <a asp-action="Index" asp-controller="Home" class="logo d-flex align-items-center logo-anim">
+            <span class="logo-sm">
+                <img src="~/assets/images/Salvamentos/icono.png" alt="Autopiezas" height="40" />
+            </span>
+            <span class="logo-lg">
+                <img src="~/assets/images/Salvamentos/icono.png" alt="Autopiezas" height="40" class="me-2" />
+                <span class="logo-text">Autopiezas</span>
+            </span>
+        </a>
+        <button type="button"
+                class="btn btn-sm p-0 fs-20 header-item float-end btn-vertical-sm-hover"
+                id="vertical-hover">
+            <i class="ri-record-circle-line"></i>
+        </button>
+    </div>
+
+    <div id="scrollbar">
+        <div class="container-fluid">
+            <ul class="navbar-nav" id="navbar-nav">
+                <li class="menu-title"><span>Menu</span></li>
+
+                <!-- Inicio (todos los perfiles) -->
+                <li class="nav-item">
+                    <a class="nav-link menu-link" asp-action="Index" asp-controller="Home">
+                        <i class="bx bx-home icon-dual"></i>
+                        <span>Inicio</span>
+                    </a>
+                </li>
+
+                @* — Administrador (Perfil 1) — *@
+                @if (perfilId == 1)
+                {
+                    <!-- Casos -->
+                    <li class="nav-item">
+                        <a class="nav-link menu-link" href="#sidebarCasos" data-bs-toggle="collapse" aria-expanded="false">
+                            <i class="bx bx-folder icon-dual"></i>
+                            <span>Casos</span>
+                        </a>
+                        <div class="collapse menu-dropdown" id="sidebarCasos">
+                            <ul class="nav nav-sm flex-column">
+                                <li class="nav-item">
+                                    <a asp-controller="Casos" asp-action="CrearCasos" class="nav-link">Crear Caso</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a asp-controller="Casos" asp-action="CasosRegistrados" class="nav-link">Listado de Casos</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+
+                    <!-- Análisis -->
+                    <li class="nav-item">
+                        <a class="nav-link menu-link" href="#sidebarAnalisis" data-bs-toggle="collapse" aria-expanded="false">
+                            <i class="bx bx-search icon-dual"></i>
+                            <span>Análisis</span>
+                        </a>
+                        <div class="collapse menu-dropdown" id="sidebarAnalisis">
+                            <ul class="nav nav-sm flex-column">
+                                <li class="nav-item">
+                                    <a asp-controller="Analisis" asp-action="InfoVehiculo" class="nav-link">Info Vehículo</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a asp-controller="Analisis" asp-action="Documentos" class="nav-link">Subir Documentos</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a asp-controller="Analisis" asp-action="ValoresFinancieros" class="nav-link">Valores Financieros</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a asp-controller="Analisis" asp-action="RespaldoDanios" class="nav-link">Respaldo de Daños</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a asp-controller="Analisis" asp-action="DetallePartes" class="nav-link">Detalle de Partes</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+
+                    <!-- Revisión -->
+                    <li class="nav-item">
+                        <a class="nav-link menu-link" href="#sidebarRevision" data-bs-toggle="collapse" aria-expanded="false">
+                            <i class="bx bx-clipboard icon-dual"></i>
+                            <span>Revisión</span>
+                        </a>
+                        <div class="collapse menu-dropdown" id="sidebarRevision">
+                            <ul class="nav nav-sm flex-column">
+                                <li class="nav-item">
+                                    <a asp-controller="Revision" asp-action="Index" class="nav-link">Listado Informes</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a asp-controller="Revision" asp-action="RevisarAutopiezas" class="nav-link">Revisión Autopiezas</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+
+                    <!-- Subastas -->
+                    <li class="nav-item">
+                        <a class="nav-link menu-link" href="#sidebarSubastas" data-bs-toggle="collapse" aria-expanded="false">
+                            <i class="bx bx-shopping-bag icon-dual"></i>
+                            <span>Subastas</span>
+                        </a>
+                        <div class="collapse menu-dropdown" id="sidebarSubastas">
+                            <ul class="nav nav-sm flex-column">
+                                <li class="nav-item">
+                                    <a asp-controller="Subasta" asp-action="Enviar" class="nav-link">Enviar a Subasta</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a asp-controller="Subasta" asp-action="Ofertas" class="nav-link">Ver Ofertas</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a asp-controller="Subasta" asp-action="SeleccionarGanador" class="nav-link">Seleccionar Ganador</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+
+                    <!-- Proveedores -->
+                    <li class="nav-item">
+                        <a class="nav-link menu-link" asp-controller="Proveedor" asp-action="Index">
+                            <i class="bx bx-user icon-dual"></i>
+                            <span>Proveedores</span>
+                        </a>
+                    </li>
+                }
+
+                @* — Revisor Autopiezas (Perfil 3) — *@
+                @if (perfilId == 3)
+                {
+                    <!-- Solo Revisión -->
+                    <li class="nav-item">
+                        <a class="nav-link menu-link" href="#sidebarRevision" data-bs-toggle="collapse" aria-expanded="false">
+                            <i class="bx bx-clipboard icon-dual"></i>
+                            <span>Revisión</span>
+                        </a>
+                        <div class="collapse menu-dropdown" id="sidebarRevision">
+                            <ul class="nav nav-sm flex-column">
+                                <li class="nav-item">
+                                    <a asp-controller="Revision" asp-action="Index" class="nav-link">Listado Informes</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a asp-controller="Revision" asp-action="RevisarAutopiezas" class="nav-link">Revisión Autopiezas</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+                }
+
+                @* — Subastadora (Perfil 4) — *@
+                @if (perfilId == 4)
+                {
+                    <!-- Solo Subastas -->
+                    <li class="nav-item">
+                        <a class="nav-link menu-link" href="#sidebarSubastas" data-bs-toggle="collapse" aria-expanded="false">
+                            <i class="bx bx-shopping-bag icon-dual"></i>
+                            <span>Subastas</span>
+                        </a>
+                        <div class="collapse menu-dropdown" id="sidebarSubastas">
+                            <ul class="nav nav-sm flex-column">
+                                <li class="nav-item">
+                                    <a asp-controller="Subasta" asp-action="Enviar" class="nav-link">Enviar a Subasta</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a asp-controller="Subasta" asp-action="Ofertas" class="nav-link">Ver Ofertas</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a asp-controller="Subasta" asp-action="SeleccionarGanador" class="nav-link">Seleccionar Ganador</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+    <div class="sidebar-background"></div>
+</div>
+<div class="vertical-overlay"></div>

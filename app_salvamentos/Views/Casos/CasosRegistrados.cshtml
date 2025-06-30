@@ -1,0 +1,119 @@
+﻿@{
+    ViewBag.Title = "Listado de Casos";
+    ViewBag.pTitle = "Listado de casos";
+    ViewBag.pageTitle = "Listado de casos";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section styles {
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css">
+}
+
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card">
+
+            <a href="#" class="btn btn-sm btn-info mb-2">
+                <i class="bx bxs-add-to-queue"></i> Registrar un nuevo caso
+            </a>
+
+            <div class="card-header">
+                <h5 class="card-title mb-0">Casos registrados</h5>
+            </div>
+
+            <div class="card-body">
+                <table id="alternative-pagination"
+                       class="table nowrap dt-responsive align-middle table-hover table-bordered w-100">
+                    <thead>
+                        <tr>
+                            <th>Indemnizado</th>
+                            <th>Placa</th>
+                            <th>Fecha Creación</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Juan Pérez</td>
+                            <td>ABC-123</td>
+                            <td>30/06/2025</td>
+                            <td>
+                                <span class="badge badge-soft-warning text-uppercase">
+                                    Pendiente
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <a href="#" class="btn btn-sm btn-outline-secondary me-1" title="Ver">
+                                    <i class="bx bx-show"></i>
+                                </a>
+                                <a href="#" class="btn btn-sm btn-outline-primary me-1" title="Editar">
+                                    <i class="bx bx-edit"></i>
+                                </a>
+                                <a href="#" class="btn btn-sm btn-outline-info" title="Análisis">
+                                    <i class="bx bx-analyse"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        <!-- Más filas de ejemplo -->
+                        <tr>
+                            <td>María Gómez</td>
+                            <td>XYZ-789</td>
+                            <td>28/06/2025</td>
+                            <td>
+                                <span class="badge badge-soft-warning text-uppercase">
+                                    Pendiente
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <a href="#" class="btn btn-sm btn-outline-secondary me-1" title="Ver">
+                                    <i class="bx bx-show"></i>
+                                </a>
+                                <a href="#" class="btn btn-sm btn-outline-primary me-1" title="Editar">
+                                    <i class="bx bx-edit"></i>
+                                </a>
+                                <a href="#" class="btn btn-sm btn-outline-info" title="Análisis">
+                                    <i class="bx bx-analyse"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"
+            integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
+            crossorigin="anonymous"></script>
+
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.print.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+
+    <script>
+        $(function() {
+          $('#alternative-pagination').DataTable({
+            responsive: true,
+            pagingType: 'simple_numbers',
+            pageLength: 10,
+            language: {
+              url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json'
+            }
+          });
+        });
+    </script>
+}
