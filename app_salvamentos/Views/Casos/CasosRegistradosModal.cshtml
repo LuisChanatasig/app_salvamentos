@@ -1,0 +1,77 @@
+﻿<div class="table-responsive">
+    <table id="contenidoCasosModal"
+           class="table nowrap dt-responsive align-middle table-hover table-bordered w-100">
+        <thead class="table-light">
+            <tr>
+                <th data-priority="1">ID</th>
+                <th data-priority="2">Fecha</th>
+                <th data-priority="3">Indemnizado</th>
+                <th>Placa</th>
+                <th>Marca</th>
+                <th>Modelo</th>
+                <th>Estado</th>
+                <th data-priority="1">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>001</td>
+                <td>2025-07-02</td>
+                <td>Juan Pérez</td>
+                <td>ABC-123</td>
+                <td>Toyota</td>
+                <td>Corolla</td>
+                <td><span class="badge bg-warning">CREADO</span></td>
+                <td>
+                    <a href="@Url.Action("AnálisisCaso","Analisis")" class="btn btn-sm btn-soft-primary">
+                        <i class="ri-eye-line"></i> Ver
+                    </a>
+                </td>
+            </tr>
+            <tr>
+                <td>002</td>
+                <td>2025-06-29</td>
+                <td>María Gómez</td>
+                <td>XYZ-456</td>
+                <td>Hyundai</td>
+                <td>Accent</td>
+                <td><span class="badge bg-info">EN ANÁLISIS</span></td>
+                <td>
+                    <a href="@Url.Action("AnálisisCaso","Analisis")" class="btn btn-sm btn-soft-primary">
+                        <i class="ri-eye-line"></i> Ver
+                    </a>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+    $(function () {
+        $('#modal-casos-table').DataTable({
+            responsive: {
+                details: {
+                    type: 'column',
+                    target: 'tr'
+                }
+            },
+            pagingType: 'simple_numbers',
+            pageLength: 10,
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json'
+            },
+            dom: 'Bfrtip',
+            buttons: [
+                { extend: 'copyHtml5', className: 'btn btn-light btn-sm' },
+                { extend: 'excelHtml5', className: 'btn btn-light btn-sm' },
+                { extend: 'pdfHtml5', className: 'btn btn-light btn-sm' },
+                { extend: 'print', className: 'btn btn-light btn-sm' }
+            ],
+            createdRow: function (row, data) {
+                if (data[6].includes('CREADO')) $(row).addClass('table-warning');
+                else if (data[6].includes('ANÁLISIS')) $(row).addClass('table-info');
+                else if (data[6].includes('FINALIZADO')) $(row).addClass('table-success');
+            }
+        });
+    });
+</script>

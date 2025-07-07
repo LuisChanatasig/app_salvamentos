@@ -1,0 +1,147 @@
+﻿@model app_salvamentos.Models.EditarUsuarioViewModel
+@{
+    ViewData["Title"] = "Editar Usuario";
+    Layout = "~/Views/Shared/_Layout.cshtml"; // Asegúrate de que tu layout base esté enlazado
+}
+
+@*
+    Asegúrate de que tus archivos CSS y JS de Velzon/Bootstrap estén correctamente enlazados en tu _Layout.cshtml.
+    Asegúrate también de incluir Choices.js si quieres los select mejorados.
+    <script src="~/assets/libs/choices.js/public/assets/scripts/choices.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+*@
+
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title mb-0">
+                    <i class="ri-pencil-line align-bottom me-1"></i> Editando Usuario: @Model.UsuarioLogin
+                </h4>
+            </div><!-- end card header -->
+
+            <div class="card-body">
+                <form method="post" asp-action="EditarUsuario" asp-controller="Usuario" class="needs-validation" novalidate>
+                    @Html.AntiForgeryToken() @* Importante para la seguridad CSRF *@
+                    <input type="hidden" asp-for="UsuarioId" /> @* Campo oculto para enviar el ID del usuario *@
+
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label asp-for="PerfilId" class="form-label">Perfil</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="ri-briefcase-line"></i></span>
+                                <select asp-for="PerfilId" class="form-select" data-choices data-choices-sorting-false required>
+                                    <option value="">-- Seleccione un perfil --</option>
+                                    @foreach (var perfil in Model.Perfiles)
+                                    {
+                                        <option value="@perfil.Value" selected="@(perfil.Value == Model.PerfilId.ToString())">@perfil.Text</option>
+                                    }
+                                </select>
+                            </div>
+                            <span asp-validation-for="PerfilId" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="UsuarioLogin" class="form-label">Nombre de Usuario</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="ri-user-line"></i></span>
+                                <input type="text" asp-for="UsuarioLogin" class="form-control" placeholder="Ingrese el nombre de usuario" required />
+                            </div>
+                            <span asp-validation-for="UsuarioLogin" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="UsuarioEmail" class="form-label">Nickname o Email</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="ri-mail-line"></i></span>
+                                <input type="text" asp-for="UsuarioEmail" class="form-control" placeholder="Ingrese el correo electrónico" required />
+                            </div>
+                            <span asp-validation-for="UsuarioEmail" class="text-danger"></span>
+                        </div>
+                       
+                        <div class="col-md-6">
+                            <label asp-for="UsuarioEstado" class="form-label">Estado</label>
+                            <div class="form-check form-switch form-switch-success form-switch-lg mt-2">
+                                @* Added form-switch-lg for larger switch *@
+                                <input class="form-check-input" type="checkbox" role="switch" id="usuarioEstadoSwitch" asp-for="UsuarioEstado">
+                                <label class="form-check-label" for="usuarioEstadoSwitch">
+                                    @(Model.UsuarioEstado ? "Activo" : "Inactivo")
+                                </label>
+                            </div>
+                            <span asp-validation-for="UsuarioEstado" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 text-end">
+                        <a href="@Url.Action("ListarUsuarios", "Usuario")" class="btn btn-secondary me-2">
+                            <i class="ri-close-line align-bottom me-1"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="ri-save-line align-bottom me-1"></i> Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            </div><!-- end card-body -->
+        </div><!-- end card -->
+    </div><!-- end col -->
+</div><!-- end row -->
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        $(document).ready(function () {
+            // Script para mostrar SweetAlert (si se usa TempData desde el controlador)
+            var errorMessage = '@Html.Raw(TempData["ErrorMessage"])';
+            var successMessage = '@Html.Raw(TempData["SuccessMessage"])';
+
+            if (errorMessage) {
+                Swal.fire({
+                    icon: 'error',
+                    title: '¡Error!',
+                    text: errorMessage,
+                    confirmButtonText: 'Aceptar'
+                });
+            } else if (successMessage) {
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Éxito!',
+                    text: successMessage,
+                    confirmButtonText: 'Ok'
+                });
+            }
+
+            // Inicializar Choices.js para el select de Perfiles
+            if (typeof Choices !== 'undefined') {
+                var selectPerfil = document.getElementById('PerfilId'); // Usa el ID del select
+                new Choices(selectPerfil, {
+                    searchEnabled: false, // No hay búsqueda si data-choices-search-false está presente
+                    removeItemButton: true,
+                });
+            }
+
+            // Actualizar el texto del switch de estado al cambiar
+            $('#usuarioEstadoSwitch').on('change', function() {
+                var label = $(this).next('label');
+                if ($(this).is(':checked')) {
+                    label.text('Activo');
+                } else {
+                    label.text('Inactivo');
+                }
+            });
+            // Inicializar el texto del switch al cargar la página
+            $('#usuarioEstadoSwitch').trigger('change');
+
+            // Script para la validación de Bootstrap 5
+            var forms = document.querySelectorAll('.needs-validation');
+            Array.prototype.slice.call(forms)
+                .forEach(function (form) {
+                    form.addEventListener('submit', function (event) {
+                        if (!form.checkValidity()) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+                        form.classList.add('was-validated');
+                    }, false);
+                });
+        });
+    </script>
+  
+}

@@ -6,97 +6,79 @@
 }
 
 @section styles {
-    <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" />
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css">
 }
 
 <div class="row">
-    <div class="col-lg-12">
+    <div class="col-12">
         <div class="card">
-
-            <a href="#" class="btn btn-sm btn-info mb-2">
-                <i class="bx bxs-add-to-queue"></i> Registrar un nuevo caso
-            </a>
-
-            <div class="card-header">
-                <h5 class="card-title mb-0">Casos registrados</h5>
+            <div class="card-header border-0">
+                <h4 class="card-title mb-0">📋 Bandeja de Casos</h4>
             </div>
 
             <div class="card-body">
-                <table id="alternative-pagination"
-                       class="table nowrap dt-responsive align-middle table-hover table-bordered w-100">
-                    <thead>
-                        <tr>
-                            <th>Indemnizado</th>
-                            <th>Placa</th>
-                            <th>Fecha Creación</th>
-                            <th>Estado</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Juan Pérez</td>
-                            <td>ABC-123</td>
-                            <td>30/06/2025</td>
-                            <td>
-                                <span class="badge badge-soft-warning text-uppercase">
-                                    Pendiente
-                                </span>
-                            </td>
-                            <td class="text-center">
-                                <a href="#" class="btn btn-sm btn-outline-secondary me-1" title="Ver">
-                                    <i class="bx bx-show"></i>
-                                </a>
-                                <a href="#" class="btn btn-sm btn-outline-primary me-1" title="Editar">
-                                    <i class="bx bx-edit"></i>
-                                </a>
-                                <a href="#" class="btn btn-sm btn-outline-info" title="Análisis">
-                                    <i class="bx bx-analyse"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        <!-- Más filas de ejemplo -->
-                        <tr>
-                            <td>María Gómez</td>
-                            <td>XYZ-789</td>
-                            <td>28/06/2025</td>
-                            <td>
-                                <span class="badge badge-soft-warning text-uppercase">
-                                    Pendiente
-                                </span>
-                            </td>
-                            <td class="text-center">
-                                <a href="#" class="btn btn-sm btn-outline-secondary me-1" title="Ver">
-                                    <i class="bx bx-show"></i>
-                                </a>
-                                <a href="#" class="btn btn-sm btn-outline-primary me-1" title="Editar">
-                                    <i class="bx bx-edit"></i>
-                                </a>
-                                <a href="#" class="btn btn-sm btn-outline-info" title="Análisis">
-                                    <i class="bx bx-analyse"></i>
-                                </a>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table id="alternative-pagination"
+                           class="table nowrap dt-responsive align-middle table-hover table-bordered w-100">
+                        <thead class="table-light">
+                            <tr>
+                                <th data-priority="1">ID</th>
+                                <th data-priority="2">Fecha</th>
+                                <th data-priority="3">Indemnizado</th>
+                                <th>Placa</th>
+                                <th>Marca</th>
+                                <th>Modelo</th>
+                                <th>Estado</th>
+                                <th data-priority="1">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>001</td>
+                                <td>2025-07-02</td>
+                                <td>Juan Pérez</td>
+                                <td>ABC-123</td>
+                                <td>Toyota</td>
+                                <td>Corolla</td>
+                                <td><span class="badge bg-warning">CREADO</span></td>
+                                <td>
+                                    <a href="@Url.Action("AnálisisCaso","Analisis")" class="btn btn-sm btn-soft-primary">
+                                        <i class="ri-eye-line"></i> Ver
+                                    </a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>002</td>
+                                <td>2025-06-29</td>
+                                <td>María Gómez</td>
+                                <td>XYZ-456</td>
+                                <td>Hyundai</td>
+                                <td>Accent</td>
+                                <td><span class="badge bg-info">EN ANÁLISIS</span></td>
+                                <td>
+                                    <a href="@Url.Action("AnálisisCaso","Analisis")" class="btn btn-sm btn-soft-primary">
+                                        <i class="ri-eye-line"></i> Ver
+                                    </a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
-
         </div>
     </div>
 </div>
-
+ 
 @section scripts {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"
-            integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
-            crossorigin="anonymous"></script>
+            integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
 
-    <!-- DataTables JS -->
     <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.print.min.js"></script>
@@ -105,15 +87,32 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
 
     <script>
-        $(function() {
-          $('#alternative-pagination').DataTable({
-            responsive: true,
-            pagingType: 'simple_numbers',
-            pageLength: 10,
-            language: {
-              url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json'
-            }
-          });
+        $(function () {
+            $('#alternative-pagination').DataTable({
+                responsive: {
+                    details: {
+                        type: 'column',
+                        target: 'tr'
+                    }
+                },
+                pagingType: 'simple_numbers',
+                pageLength: 10,
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json'
+                },
+                dom: 'Bfrtip',
+                buttons: [
+                    { extend: 'copyHtml5', className: 'btn btn-light btn-sm' },
+                    { extend: 'excelHtml5', className: 'btn btn-light btn-sm' },
+                    { extend: 'pdfHtml5', className: 'btn btn-light btn-sm' },
+                    { extend: 'print', className: 'btn btn-light btn-sm' }
+                ],
+                createdRow: function (row, data) {
+                    if (data[6].includes('CREADO')) $(row).addClass('table-warning');
+                    else if (data[6].includes('ANÁLISIS')) $(row).addClass('table-info');
+                    else if (data[6].includes('FINALIZADO')) $(row).addClass('table-success');
+                }
+            });
         });
     </script>
 }

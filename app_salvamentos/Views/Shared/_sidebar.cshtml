@@ -25,6 +25,8 @@
 
     <div id="scrollbar">
         <div class="container-fluid">
+            <div id="two-column-menu">
+            </div>
             <ul class="navbar-nav" id="navbar-nav">
                 <li class="menu-title"><span>Menu</span></li>
 
@@ -39,6 +41,23 @@
                 @* — Administrador (Perfil 1) — *@
                 @if (perfilId == 1)
                 {
+                    <!-- Administracion -->
+                    <li class="nav-item">
+                        <a class="nav-link menu-link" href="#sidebarUsuarios" data-bs-toggle="collapse" aria-expanded="false">
+                            <i class=" bx bx-user icon-dual"></i>
+                            <span>Usuario</span>
+                        </a>
+                        <div class="collapse menu-dropdown" id="sidebarUsuarios">
+                            <ul class="nav nav-sm flex-column">
+                                <li class="nav-item">
+                                    <a asp-controller="Usuario" asp-action="CrearUsuario" class="nav-link">Crear Usuario</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a asp-controller="Usuario" asp-action="ListarUsuarios" class="nav-link">Lista Usuarios</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
                     <!-- Casos -->
                     <li class="nav-item">
                         <a class="nav-link menu-link" href="#sidebarCasos" data-bs-toggle="collapse" aria-expanded="false">
@@ -51,7 +70,7 @@
                                     <a asp-controller="Casos" asp-action="CrearCasos" class="nav-link">Crear Caso</a>
                                 </li>
                                 <li class="nav-item">
-                                    <a asp-controller="Casos" asp-action="CasosRegistrados" class="nav-link">Listado de Casos</a>
+                                    <a asp-controller="Casos" asp-action="CasosRegistrados" class="nav-link">Lista Caso</a>
                                 </li>
                             </ul>
                         </div>
@@ -59,29 +78,11 @@
 
                     <!-- Análisis -->
                     <li class="nav-item">
-                        <a class="nav-link menu-link" href="#sidebarAnalisis" data-bs-toggle="collapse" aria-expanded="false">
+                        <a href="#" class="nav-link menu-link" data-bs-toggle="modal" data-bs-target="#modalCasos">
                             <i class="bx bx-search icon-dual"></i>
                             <span>Análisis</span>
                         </a>
-                        <div class="collapse menu-dropdown" id="sidebarAnalisis">
-                            <ul class="nav nav-sm flex-column">
-                                <li class="nav-item">
-                                    <a asp-controller="Analisis" asp-action="InfoVehiculo" class="nav-link">Info Vehículo</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a asp-controller="Analisis" asp-action="Documentos" class="nav-link">Subir Documentos</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a asp-controller="Analisis" asp-action="ValoresFinancieros" class="nav-link">Valores Financieros</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a asp-controller="Analisis" asp-action="RespaldoDanios" class="nav-link">Respaldo de Daños</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a asp-controller="Analisis" asp-action="DetallePartes" class="nav-link">Detalle de Partes</a>
-                                </li>
-                            </ul>
-                        </div>
+
                     </li>
 
                     <!-- Revisión -->
@@ -184,3 +185,5 @@
     <div class="sidebar-background"></div>
 </div>
 <div class="vertical-overlay"></div>
+
+

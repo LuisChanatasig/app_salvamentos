@@ -18,6 +18,9 @@ builder.Services.AddTransient<IDbConnection>(sp =>
 //Servicios
 builder.Services.AddScoped<AutenticacionService>();
 builder.Services.AddScoped<DocumentRecognitionService>();
+builder.Services.AddScoped<SeleccionablesService>();
+builder.Services.AddScoped<UsuarioService>();
+builder.Services.AddScoped<CasosService>();
 
 
 //Configuracion tiempo de sesion

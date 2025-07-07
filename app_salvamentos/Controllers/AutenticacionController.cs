@@ -39,8 +39,8 @@ namespace app_salvamentos.Controllers
             {
                 case 0:
                     // Guardar en sesión
-                    HttpContext.Session.SetInt32("UsuarioId", result.UsuarioId);
-                    HttpContext.Session.SetInt32("RolId", result.PerfilId);
+                    HttpContext.Session.SetInt32("UsuarioId", result.UsuarioId ?? 0);
+                    HttpContext.Session.SetInt32("RolId", result.PerfilId ?? 0);
                     HttpContext.Session.SetString("UsuarioLogin", result.UsuarioLogin); //nombres del usuario
                     HttpContext.Session.SetString("PerfilNombre", result.PerfilNombre);
                    

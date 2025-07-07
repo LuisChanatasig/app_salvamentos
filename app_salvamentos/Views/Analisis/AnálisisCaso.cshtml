@@ -1,72 +1,499 @@
 ﻿@{
-    ViewBag.Title = "Análisis de Caso";
+    ViewBag.Title = "Análisis del Caso";
+    ViewBag.pTitle = "Análisis";
+    ViewBag.pageTitle = "Análisis del Caso";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h5 class="mb-3">2. Análisis de Caso</h5>
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title mb-0">🔍 Análisis del Caso - ID 001</h4>
+            </div>
 
-<ul class="nav nav-tabs nav-tabs-custom" id="analisisTabs" role="tablist">
-    <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="tab-info-vehiculo" data-bs-toggle="tab"
-                data-bs-target="#infoVehiculo" type="button" role="tab">
-            Info Vehículo
-        </button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-documentos" data-bs-toggle="tab"
-                data-bs-target="#documentos" type="button" role="tab">
-            Documentos
-        </button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-valores" data-bs-toggle="tab"
-                data-bs-target="#valoresComerciales" type="button" role="tab">
-            Valores Comerciales
-        </button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-promedio" data-bs-toggle="tab"
-                data-bs-target="#calculoPromedio" type="button" role="tab">
-            Cálculo Promedio
-        </button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-partes" data-bs-toggle="tab"
-                data-bs-target="#partesDepreciacion" type="button" role="tab">
-            Partes & Depreciación
-        </button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-respaldo" data-bs-toggle="tab"
-                data-bs-target="#respaldoDanios" type="button" role="tab">
-            Respaldo Daños
-        </button>
-    </li>
-</ul>
+            <div class="card-body">
+                <!-- Tabs Navigation -->
+                <ul class="nav nav-tabs nav-tabs-custom nav-success mb-3" role="tablist" id="tabsChecklist">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-bs-toggle="tab" href="#resumen" role="tab" id="tabResumen">
+                            <i class="ri-file-info-line align-middle me-1"></i> Resumen del Caso <span class="badge bg-light text-muted ms-1" id="statusResumen">⏳</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#documentos" role="tab" id="tabDocumentos">
+                            <i class="ri-folder-line align-middle me-1"></i> Documentos <span class="badge bg-light text-muted ms-1" id="statusDocumentos">⏳</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#valores" role="tab" id="tabValores">
+                            <i class="ri-money-dollar-circle-line align-middle me-1"></i> Valores Comerciales <span class="badge bg-light text-muted ms-1" id="statusValores">⏳</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#danos" role="tab" id="tabDanos">
+                            <i class="ri-tools-line align-middle me-1"></i> Daños <span class="badge bg-light text-muted ms-1" id="statusDanos">⏳</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#partes" role="tab" id="tabPartes">
+                            <i class="ri-car-wrench-line align-middle me-1"></i> Partes <span class="badge bg-light text-muted ms-1" id="statusPartes">⏳</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#resumenfinal" role="tab" id="tabFinal">
+                            <i class="ri-clipboard-line align-middle me-1"></i> Final <span class="badge bg-light text-muted ms-1" id="statusFinal">⏳</span>
+                        </a>
+                    </li>
+                </ul>
 
-<div class="tab-content mt-3" id="analisisTabsContent">
-    <div class="tab-pane fade show active" id="infoVehiculo" role="tabpanel">
-        @* Partial o bloque inline *@
-        @Html.Partial("Partials/_InfoVehiculo")
+                <!-- Tabs Content -->
+                <div class="tab-content text-muted">
+                    <!-- Tab 1: Resumen del caso -->
+                    <div class="tab-pane fade show active" id="resumen" role="tabpanel">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Nombre del Indemnizado</label>
+                                <input type="text" class="form-control" value="Juan Pérez" readonly />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha del Siniestro</label>
+                                <input type="date" class="form-control" value="2025-07-02" readonly />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Marca</label>
+                                <input type="text" class="form-control" value="Toyota" readonly />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Modelo</label>
+                                <input type="text" class="form-control" value="Corolla" readonly />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Año</label>
+                                <input type="number" class="form-control" value="2020" readonly />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Placa</label>
+                                <input type="text" class="form-control" value="ABC-1234" readonly />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Número de Póliza</label>
+                                <input type="text" class="form-control" value="POL12345678" readonly />
+                            </div>
+                        </div>
+
+                        <hr class="my-4" />
+
+                        <h5 class="mb-3">🛠️ Información técnica adicional</h5>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Tipo de Vehículo</label>
+                                <select class="form-select">
+                                    <option>Sedan</option>
+                                    <option>SUV</option>
+                                    <option>Camioneta</option>
+                                    <option>Pickup</option>
+                                    <option>Otro</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Transmisión</label>
+                                <select class="form-select">
+                                    <option>Manual</option>
+                                    <option>Automática</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Combustible</label>
+                                <select class="form-select">
+                                    <option>Gasolina</option>
+                                    <option>Diésel</option>
+                                    <option>Híbrido</option>
+                                    <option>Eléctrico</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Color</label>
+                                <input type="text" class="form-control" placeholder="Ej. Gris Plata" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Cilindraje</label>
+                                <input type="number" class="form-control" placeholder="Ej. 1600" />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Número de Motor</label>
+                                <input type="text" class="form-control" placeholder="Ej. MTR12345678" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Número de Chasis</label>
+                                <input type="text" class="form-control" placeholder="Ej. CHS98765432" />
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label">Observaciones del vehículo</label>
+                                <textarea class="form-control" rows="3" placeholder="Notas sobre el estado del vehículo, condiciones generales, etc."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 2: Documentos -->
+                    <div class="tab-pane fade" id="documentos" role="tabpanel">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label class="form-label">Categoría del Documento</label>
+                                <select class="form-select" id="categoriaDocumento">
+                                    <option value="">Seleccione</option>
+                                    <option value="matricula">Matrícula</option>
+                                    <option value="multas">Multas</option>
+                                    <option value="radio">Radio</option>
+                                    <option value="fotos_siniestro">Fotos del Siniestro</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Seleccionar archivos</label>
+                                <input type="file" id="archivosDocumento" class="form-control" multiple />
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="button" class="btn btn-primary w-100" id="btnAgregarDoc">
+                                    <i class="ri-upload-cloud-line me-1"></i> Agregar
+                                </button>
+                            </div>
+                        </div>
+
+                        <hr class="my-4" />
+
+                        <h6>📂 Documentos cargados:</h6>
+                        <div class="row" id="listaDocumentos">
+                            <!-- Aquí se agregarán los documentos visualmente -->
+                        </div>
+                    </div>
+                    <!-- Tab 3: Valores Comerciales -->
+                    <div class="tab-pane fade" id="valores" role="tabpanel">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Valor asegurado</label>
+                                <input type="number" class="form-control" placeholder="Ej. 9500" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Valores pendientes por matrícula</label>
+                                <input type="number" class="form-control" placeholder="Ej. 120" />
+                            </div>
+
+                            <hr class="my-2">
+                            <h5 class="mt-4">💲 Valores Comerciales del Mercado</h5>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Patio Tuerca</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" placeholder="Valor" />
+                                    <input type="file" class="form-control" />
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Marketplace</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" placeholder="Valor" />
+                                    <input type="file" class="form-control" />
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Hugo Vargas</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" placeholder="Valor" />
+                                    <input type="file" class="form-control" />
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Otros</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" placeholder="Valor" />
+                                    <input type="file" class="form-control" />
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Promedio Calculado</label>
+                                <input type="number" class="form-control" placeholder="Auto-calculado" readonly />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Promedio - Valor matrícula</label>
+                                <input type="number" class="form-control" placeholder="Auto-calculado" readonly />
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Tab 4: Daños y Observaciones (estilo Crear Caso) -->
+                    <div class="tab-pane fade" id="danos" role="tabpanel">
+                        <div class="mb-3">
+                            <label class="form-label">Subir fotos de daños</label>
+                            <input type="file" id="fotosDanoInput" class="form-control" multiple accept="image/*" />
+                        </div>
+
+                        <div class="row g-3" id="previewDanos">
+                            <!-- Aquí se mostrarán las imágenes cargadas con observación y eliminar -->
+                        </div>
+
+                        <div class="text-end mt-3">
+                            <button class="btn btn-success" id="btnValidarFotos">
+                                <i class="ri-check-line me-1"></i> Validar Observaciones
+                            </button>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="partes" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table table-bordered align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Parte</th>
+                                        <th>Valor Nuevo</th>
+                                        <th>Valor Depreciado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaPartes">
+                                    <!-- Filas dinámicas -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="d-flex justify-content-end mb-4">
+                            <button type="button" class="btn btn-sm btn-outline-success" id="btnAgregarParte">
+                                <i class="ri-add-line"></i> Agregar Parte
+                            </button>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">% de Daño</label>
+                                <input type="number" class="form-control" placeholder="Ej. 30" id="porcentajeDano" min="0" max="100" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Valor Calculado de Salvamento</label>
+                                <input type="number" class="form-control" id="valorSalvamento" readonly />
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Tab 6: Resumen Final -->
+                    <div class="tab-pane fade" id="resumenfinal" role="tabpanel">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <h5 class="mb-3">🧾 Resumen del Análisis</h5>
+                                <ul class="list-group">
+                                    <li class="list-group-item d-flex justify-content-between">
+                                        <strong>Nombre:</strong> <span>Juan Pérez</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between">
+                                        <strong>Placa:</strong> <span>ABC-1234</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between">
+                                        <strong>Marca / Modelo:</strong> <span>Toyota Corolla (2020)</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between">
+                                        <strong>Valor Asegurado:</strong> <span>$9,500</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between">
+                                        <strong>Promedio Comercial:</strong> <span>$8,800</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between">
+                                        <strong>Valor Pendiente Matrícula:</strong> <span>$120</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between">
+                                        <strong>Promedio Neto:</strong> <span>$8,680</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between">
+                                        <strong>% de Daño:</strong> <span>30%</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between">
+                                        <strong>Valor Salvamento:</strong> <span>$1,200</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="text-end mt-4">
+                            <button class="btn btn-success">
+                                <i class="ri-check-line me-1"></i> Finalizar Análisis
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Las demás secciones (Documentos, Valores, etc.) se construirán paso a paso -->
+                </div>
+            </div>
+        </div>
     </div>
-
-    <div class="tab-pane fade" id="documentos" role="tabpanel">
-        @Html.Partial("Partials/_CargaDocumentos")
-    </div>
-
-    <div class="tab-pane fade" id="valoresComerciales" role="tabpanel">
-        @Html.Partial("Partials/_ValoresComerciales")
-    </div>
-
-    <div class="tab-pane fade" id="calculoPromedio" role="tabpanel">
-@*         @Html.Partial("Partials/_CalculoPromedio")
- *@    </div>
-
-    <div class="tab-pane fade" id="partesDepreciacion" role="tabpanel">
-        @Html.Partial("Partials/_PartesYDepreciacion")
-    </div>
-
-    <div class="tab-pane fade" id="respaldoDanios" role="tabpanel">
-@*         @Html.Partial("Partials/_RespaldoDanios")
- *@    </div>
 </div>
+
+@section Scripts {
+    <script>
+        document.getElementById('btnAgregarDoc').addEventListener('click', () => {
+            const categoria = document.getElementById('categoriaDocumento').value;
+            const archivos = document.getElementById('archivosDocumento').files;
+            const lista = document.getElementById('listaDocumentos');
+
+            if (!categoria || archivos.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Faltan datos',
+                    text: 'Selecciona una categoría y al menos un archivo.'
+                });
+                return;
+            }
+
+            for (let archivo of archivos) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const col = document.createElement('div');
+                    col.classList.add('col-md-3');
+                    const isImg = archivo.type.startsWith('image/');
+                    const icon = isImg ? `<img src="${e.target.result}" class="img-thumbnail" style="height: 120px; object-fit: cover" />`
+                                        : `<div class="bg-light border rounded text-center p-4">
+                                              <i class="ri-file-line fs-1 text-primary"></i><br>
+                                              <small>${archivo.name}</small>
+                                           </div>`;
+
+                    col.innerHTML = `
+                        <div class="card">
+                            <div class="card-body p-2 text-center">
+                                ${icon}
+                                <p class="mt-2 mb-0"><strong>${categoria}</strong></p>
+                            </div>
+                        </div>`;
+                    lista.appendChild(col);
+                }
+                reader.readAsDataURL(archivo);
+            }
+
+            document.getElementById('archivosDocumento').value = '';
+            document.getElementById('categoriaDocumento').value = '';
+        });
+    </script>
+ 
+    <script>
+                document.getElementById('btnAgregarParte').addEventListener('click', () => {
+            const tbody = document.getElementById('tablaPartes');
+            const fila = document.createElement('tr');
+
+            fila.innerHTML = `
+                <td><input type="text" class="form-control" placeholder="Ej. Parachoques" /></td>
+                <td><input type="number" class="form-control valor-nuevo" placeholder="0" /></td>
+                <td><input type="number" class="form-control valor-depreciado" placeholder="0" /></td>
+                <td><button type="button" class="btn btn-sm btn-danger btnEliminarParte">Eliminar</button></td>
+            `;
+
+            tbody.appendChild(fila);
+        });
+
+        document.getElementById('tablaPartes').addEventListener('click', function (e) {
+            if (e.target.classList.contains('btnEliminarParte')) {
+                e.target.closest('tr').remove();
+                recalcularSalvamento();
+            }
+        });
+
+        document.getElementById('porcentajeDano').addEventListener('input', recalcularSalvamento);
+
+        function recalcularSalvamento() {
+            const porcentaje = parseFloat(document.getElementById('porcentajeDano').value) || 0;
+            let totalDepreciado = 0;
+
+            document.querySelectorAll('.valor-depreciado').forEach(input => {
+                totalDepreciado += parseFloat(input.value) || 0;
+            });
+
+            const valorSalvamento = ((100 - porcentaje) / 100) * totalDepreciado;
+            document.getElementById('valorSalvamento').value = valorSalvamento.toFixed(2);
+        }
+
+    </script>
+    <script>
+        const inputFotos = document.getElementById('fotosDanoInput');
+        const previewDanos = document.getElementById('previewDanos');
+
+        function actualizarContadorFotos() {
+            const total = previewDanos.querySelectorAll('.col-md-3').length;
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: `Total: ${total} imagen(es)`,
+                showConfirmButton: false,
+                timer: 1500
+            });
+        }
+
+        inputFotos.addEventListener('change', function () {
+            const archivos = this.files;
+
+            for (let archivo of archivos) {
+                const yaExiste = [...previewDanos.querySelectorAll('small')].some(
+                    el => el.innerText === archivo.name
+                );
+                if (yaExiste) continue;
+
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const col = document.createElement('div');
+                    col.classList.add('col-md-3');
+
+                    const preview = `<img src="${e.target.result}" class="img-thumbnail mb-2" style="height: 120px; object-fit: cover; width: 100%;" />`;
+
+                    col.innerHTML = `
+                        <div class="card shadow-sm">
+                            <div class="card-body p-2 text-center">
+                                ${preview}
+                                <textarea class="form-control observacion-foto mt-2" rows="2" placeholder="Observación del daño"></textarea>
+                                <button type="button" class="btn btn-sm btn-danger btnEliminar mt-2 w-100">Eliminar</button>
+                            </div>
+                        </div>`;
+                    previewDanos.appendChild(col);
+                    actualizarContadorFotos();
+                };
+                reader.readAsDataURL(archivo);
+            }
+
+            this.value = null;
+        });
+
+        previewDanos.addEventListener('click', (e) => {
+            if (e.target.classList.contains('btnEliminar')) {
+                e.target.closest('.col-md-3').remove();
+                actualizarContadorFotos();
+            }
+        });
+
+        document.getElementById('btnValidarFotos').addEventListener('click', function () {
+            const observaciones = document.querySelectorAll('.observacion-foto');
+            let todasLlenas = true;
+            observaciones.forEach(obs => {
+                if (!obs.value.trim()) {
+                    obs.classList.add('is-invalid');
+                    todasLlenas = false;
+                } else {
+                    obs.classList.remove('is-invalid');
+                }
+            });
+
+            if (todasLlenas) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Listo',
+                    text: 'Todas las observaciones están completas.'
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Faltan observaciones',
+                    text: 'Completa las observaciones para todas las fotos.'
+                });
+            }
+        });
+    </script>
+
+}
