@@ -1,75 +1,60 @@
-﻿// Asegúrate de que jQuery, SweetAlert2 y Choices.js estén cargados antes de este script.
-
-$(document).ready(function () {
-    let currentStep = 1;
-    const totalSteps = 2;
+﻿$(document).ready(function () {
+    // Variables globales
     const form = $('#crearCasoForm');
     const steps = $('.step');
-    const btnNext = $('#btnNextStep');
-    const btnBack = $('#btnBack');
-    const btnAgregarArchivos = $('#btnAgregarArchivos');
-    const archivosDocumentoInput = $('#archivosDocumento');
-    const categoriaDocumentoSelect = $('#documentoTipo');
-    const observacionesDocumentoTextarea = $('#observacionesDocumento');
-    const listaDocumentosDiv = $('#listaDocumentos');
-    const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
-    const previewContent = $('#previewContent');
+    let currentStep = 1;
 
-    // Array para almacenar los documentos cargados
+    // Objeto para almacenar los documentos cargados (ahora guarda el objeto File)
+    // Se usan arrays separados para cada tipo de documento para facilitar el mapeo a FormData
     let loadedDocuments = {
-        asegurado: [],
-        caso: []
+        asegurado: [], // [{ TipoDocumentoId: int, File: FileObject, Observaciones: string }]
+        caso: [],      // [{ TipoDocumentoId: int, File: FileObject, Observaciones: string }]
+        fotosDano: [], // [{ TipoDocumentoId: int, File: FileObject, Observaciones: string }]
+        valoresComercialesFiles: [] // [{ TipoDocumentoId: int, File: FileObject, Observaciones: string }]
     };
 
+    // Referencias a elementos del formulario de documentos
+    const documentoTipoSelect = $('#documentoTipo');
+    const archivosDocumentoInput = $('#archivosDocumento');
+    const observacionesDocumentoTextarea = $('#observacionesDocumento');
+    const listaDocumentosDiv = $('#listaDocumentos');
+
     // Inyectar el UsuarioId desde el modelo Razor (definido en la vista .cshtml)
-    // Asegúrate de que 'initialUsuarioId' esté disponible globalmente o se pase aquí.
-    // Ejemplo: var initialUsuarioId = @Model.UsuarioId; en la vista.
     const usuarioIdFromModel = typeof initialUsuarioId !== 'undefined' ? initialUsuarioId : 1; // Usar 1 como fallback si no está inyectado
 
-    // Inicializar Choices.js para los selects
-    if (typeof Choices !== 'undefined') {
-        new Choices(categoriaDocumentoSelect[0], {
-            searchEnabled: false,
-            removeItemButton: true,
-            allowHTML: true // Permite optgroup labels
-        });
-        new Choices($('#CasoEstadoId')[0], {
-            searchEnabled: false,
-            removeItemButton: true
-        });
-    }
+    // Variable para la URL de creación de casos, que será inyectada desde la vista Razor
+    // Asegúrate de definir 'crearCasoUrl' en tu vista .cshtml antes de cargar este script.
+    const crearCasoApiUrl = typeof crearCasoUrl !== 'undefined' ? crearCasoUrl : '/Casos/CrearCaso';
 
-    // Función para mostrar el paso actual
+
+    // ====================================================================
+    // Funciones de Navegación entre Pasos
+    // ====================================================================
+
     function showStep(stepNumber) {
         steps.addClass('d-none'); // Oculta todos los pasos
         $(`#step${stepNumber}`).removeClass('d-none'); // Muestra el paso actual
+        currentStep = stepNumber;
     }
 
-    // Función para validar el paso actual (mejorada para dar feedback específico)
+    // Función para validar el paso actual (adaptada para selects estándar)
     function validateStep(stepNumber) {
         let isValid = true;
         let firstInvalidField = null;
 
         // Limpiar validaciones previas
         $(`#step${stepNumber} .is-invalid`).removeClass('is-invalid');
-        $(`#step${stepNumber} .choices.is-invalid`).removeClass('is-invalid');
 
-        // Validar campos de input y textarea
-        $(`#step${stepNumber} :input[required]`).each(function () {
+        // Validar campos de input, textarea y select estándar
+        $(`#step${stepNumber} :input[required], #${stepNumber} select[required]`).each(function () {
             if (!this.checkValidity()) {
                 isValid = false;
                 $(this).addClass('is-invalid');
+                $(this).removeClass('is-valid');
                 if (!firstInvalidField) firstInvalidField = this;
-            }
-        });
-
-        // Validar selects de Choices.js
-        $(`#step${stepNumber} select[required]`).each(function () {
-            const choicesInstance = Choices.getInstance(this);
-            if (choicesInstance && !choicesInstance.getValue(true)) {
-                isValid = false;
-                $(this).next('.choices').addClass('is-invalid'); // Añadir clase a la envoltura de Choices.js
-                if (!firstInvalidField) firstInvalidField = this;
+            } else {
+                $(this).addClass('is-valid');
+                $(this).removeClass('is-invalid');
             }
         });
 
@@ -89,30 +74,11 @@ $(document).ready(function () {
         return isValid;
     }
 
-    // Manejar el botón Siguiente
-    btnNext.on('click', function () {
-        if (validateStep(currentStep)) {
-            currentStep++;
-            showStep(currentStep);
-            // Si hay nuevos selects en el paso 2 que necesitan Choices.js, inicialízalos aquí
-            // (En este caso, ya se inicializan al cargar la página, pero es un buen lugar para recordar)
-        }
-    });
-
-    // Manejar el botón Volver
-    btnBack.on('click', function () {
-        currentStep--;
-        showStep(currentStep);
-    });
-
-    // Mostrar el primer paso al cargar la página
-    showStep(currentStep);
-
     // ====================================================================
-    // Lógica de Carga de Documentos
+    // Manejo de Documentos (Carga y Visualización)
     // ====================================================================
 
-    // Función para leer un archivo como Base64
+    // Función para leer un archivo como Base64 (para previsualización)
     function readFileAsBase64(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -132,18 +98,53 @@ $(document).ready(function () {
     }
 
     // Función para añadir documentos a la lista
-    btnAgregarArchivos.on('click', async function () {
-        const tipoDocumentoId = categoriaDocumentoSelect.val();
-        const tipoDocumentoText = categoriaDocumentoSelect.find('option:selected').text();
-        const ambitoDocumento = categoriaDocumentoSelect.find('option:selected').data('ambito');
+    $('#btnAgregarArchivos').on('click', async function () {
+        const tipoDocumentoId = documentoTipoSelect.val();
+        const tipoDocumentoText = documentoTipoSelect.find('option:selected').text();
+        const selectedOptionElement = documentoTipoSelect.find('option:selected');
+
+        let ambitoDocumentoRaw = selectedOptionElement.attr('data-ambito');
+        let ambitoDocumento = ambitoDocumentoRaw ? ambitoDocumentoRaw.toLowerCase() : undefined;
+
+        // Validar que se haya seleccionado una opción de tipo de documento
+        if (!tipoDocumentoId) {
+            documentoTipoSelect.addClass('is-invalid');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Selección Requerida',
+                text: 'Por favor, seleccione un tipo de documento de la lista.',
+                confirmButtonText: 'Aceptar',
+                confirmButtonColor: '#f7b84b'
+            });
+            return;
+        } else {
+            documentoTipoSelect.removeClass('is-invalid');
+        }
+
+        // Validar que ambitoDocumento sea 'asegurado' o 'caso' (en minúsculas)
+        if (ambitoDocumento !== 'asegurado' && ambitoDocumento !== 'caso') {
+            documentoTipoSelect.addClass('is-invalid');
+            console.error("Error de validación: El ámbito del documento es inválido o indefinido. Valor obtenido:", ambitoDocumentoRaw);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error de Configuración',
+                text: 'La opción de tipo de documento seleccionada no tiene un ámbito válido. Por favor, recargue la página o contacte a soporte.',
+                confirmButtonText: 'Aceptar'
+            });
+            return;
+        } else {
+            documentoTipoSelect.removeClass('is-invalid');
+        }
+
         const observaciones = observacionesDocumentoTextarea.val();
         const files = archivosDocumentoInput[0].files;
 
-        if (!tipoDocumentoId || files.length === 0 || !ambitoDocumento) {
+        // Validar que se haya seleccionado al menos un archivo
+        if (files.length === 0) {
             Swal.fire({
                 icon: 'warning',
-                title: 'Campos Incompletos',
-                text: 'Por favor, seleccione un tipo de documento y al menos un archivo.',
+                title: 'Archivos Requeridos',
+                text: 'Por favor, seleccione al menos un archivo para subir.',
                 confirmButtonText: 'Aceptar',
                 confirmButtonColor: '#f7b84b'
             });
@@ -151,7 +152,7 @@ $(document).ready(function () {
         }
 
         for (const file of files) {
-            // Verificar si el archivo ya existe en la lista de documentos cargados para el mismo ámbito
+            // Verificar si el archivo ya existe en la lista de documentos cargados para el mismo ámbito y tipo
             const yaExiste = loadedDocuments[ambitoDocumento].some(
                 doc => doc.NombreArchivo === file.name && doc.TipoDocumentoId === parseInt(tipoDocumentoId)
             );
@@ -166,28 +167,27 @@ $(document).ready(function () {
             }
 
             try {
-                const contenidoBase64 = await readFileAsBase64(file);
                 const newDoc = {
                     TipoDocumentoId: parseInt(tipoDocumentoId),
                     NombreArchivo: file.name,
-                    ContenidoBase64: contenidoBase64,
+                    File: file, // Guardamos el objeto File directamente
                     Observaciones: observaciones,
-                    AmbitoDocumento: ambitoDocumento
+                    AmbitoDocumento: ambitoDocumentoRaw
                 };
 
-                // Asignar un índice temporal para la UI, ya que splice puede cambiar los índices reales
+                // Asignar un índice temporal para la UI
                 const uiIndex = loadedDocuments[ambitoDocumento].length;
-                newDoc.uiIndex = uiIndex; // Guardar el índice en el array para facilitar la eliminación
+                newDoc.uiIndex = uiIndex;
 
-                if (ambitoDocumento === 'ASEGURADO') {
+                if (ambitoDocumento === 'asegurado') {
                     loadedDocuments.asegurado.push(newDoc);
-                } else if (ambitoDocumento === 'CASO') {
+                } else if (ambitoDocumento === 'caso') {
                     loadedDocuments.caso.push(newDoc);
                 }
 
                 // Añadir a la UI
                 const docItem = `
-                    <div class="col-md-4 col-sm-6 mb-3" data-ui-index="${uiIndex}" data-ambito="${ambitoDocumento}">
+                    <div class="col-md-4 col-sm-6 mb-3" data-ui-index="${uiIndex}" data-ambito="${ambitoDocumentoRaw}">
                         <div class="card border card-animate">
                             <div class="card-body">
                                 <div class="d-flex align-items-center">
@@ -196,13 +196,13 @@ $(document).ready(function () {
                                     </div>
                                     <div class="flex-grow-1">
                                         <h6 class="mb-1 text-truncate">${file.name}</h6>
-                                        <small class="text-muted">${tipoDocumentoText} (${ambitoDocumento})</small>
+                                        <small class="text-muted">${tipoDocumentoText} (${ambitoDocumentoRaw})</small>
                                     </div>
                                     <div class="flex-shrink-0">
                                         <button type="button" class="btn btn-sm btn-light p-0 remove-doc-btn" data-bs-toggle="tooltip" data-bs-placement="top" title="Eliminar">
                                             <i class="ri-delete-bin-line text-danger"></i>
                                         </button>
-                                        <button type="button" class="btn btn-sm btn-light p-0 preview-doc-btn ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Previsualizar">
+                                        <button type="button" class="btn btn-sm btn-light p-0 preview-doc-btn ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Previsualizar" data-file-type="${file.type}">
                                             <i class="ri-eye-line text-info"></i>
                                         </button>
                                     </div>
@@ -240,18 +240,26 @@ $(document).ready(function () {
         // Limpiar campos después de agregar
         archivosDocumentoInput.val('');
         observacionesDocumentoTextarea.val('');
-        // Para Choices.js, usa la instancia para resetear
-        const categoriaChoices = Choices.getInstance(categoriaDocumentoSelect[0]);
-        if (categoriaChoices) {
-            categoriaChoices.setChoiceByValue('');
-        }
+        documentoTipoSelect.val(''); // Limpiar select estándar
     });
 
     // Manejar eliminación de documentos de la UI y del array
     listaDocumentosDiv.on('click', '.remove-doc-btn', function () {
         const card = $(this).closest('.col-md-4');
-        const uiIndex = card.data('ui-index'); // Usar el índice de la UI
-        const ambito = card.data('ambito');
+        const uiIndex = card.data('ui-index');
+        let ambitoRaw = card.data('ambito');
+        let ambito = ambitoRaw ? ambitoRaw.toLowerCase() : undefined;
+
+        if (ambito !== 'asegurado' && ambito !== 'caso') {
+            console.error("Error al eliminar: Ámbito de documento inválido o indefinido en la UI. Valor obtenido:", ambitoRaw);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error Interno',
+                text: 'No se pudo determinar el tipo de documento para eliminar. Por favor, recargue la página.',
+                confirmButtonText: 'Aceptar'
+            });
+            return;
+        }
 
         Swal.fire({
             title: '¿Estás seguro?',
@@ -264,12 +272,11 @@ $(document).ready(function () {
             cancelButtonText: 'Cancelar'
         }).then((result) => {
             if (result.isConfirmed) {
-                // Encontrar el índice real en el array loadedDocuments
                 const realIndex = loadedDocuments[ambito].findIndex(doc => doc.uiIndex === uiIndex);
                 if (realIndex > -1) {
-                    loadedDocuments[ambito].splice(realIndex, 1); // Eliminar del array
+                    loadedDocuments[ambito].splice(realIndex, 1);
                 }
-                card.remove(); // Eliminar de la UI
+                card.remove();
                 Swal.fire('Eliminado!', 'El documento ha sido removido de la lista.', 'success');
             }
         });
@@ -279,32 +286,49 @@ $(document).ready(function () {
     listaDocumentosDiv.on('click', '.preview-doc-btn', function () {
         const card = $(this).closest('.col-md-4');
         const uiIndex = card.data('ui-index');
-        const ambito = card.data('ambito');
-        const doc = loadedDocuments[ambito].find(d => d.uiIndex === uiIndex); // Buscar por uiIndex
+        let ambitoRaw = card.data('ambito');
+        let ambito = ambitoRaw ? ambitoRaw.toLowerCase() : undefined;
 
-        if (!doc) {
+        if (ambito !== 'asegurado' && ambito !== 'caso') {
+            console.error("Error al previsualizar: Ámbito de documento inválido o indefinido en la UI. Valor obtenido:", ambitoRaw);
             Swal.fire({
                 icon: 'error',
-                title: 'Error de Previsualización',
-                text: 'Documento no encontrado en la memoria.',
+                title: 'Error Interno',
+                text: 'No se pudo determinar el tipo de documento para previsualizar. Por favor, recargue la página.',
                 confirmButtonText: 'Aceptar'
             });
             return;
         }
 
-        previewContent.empty(); // Limpiar contenido previo
+        const doc = loadedDocuments[ambito].find(d => d.uiIndex === uiIndex);
 
-        const fileExtension = doc.NombreArchivo.split('.').pop().toLowerCase();
-        const base64Data = `data:${getFileMimeType(fileExtension)};base64,${doc.ContenidoBase64}`;
-
-        if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension)) {
-            previewContent.append(`<img src="${base64Data}" class="img-fluid" style="max-height: 80vh;" alt="${doc.NombreArchivo}">`);
-        } else if (fileExtension === 'pdf') {
-            previewContent.append(`<iframe src="${base64Data}" width="100%" height="600px" style="border: none;"></iframe>`);
-        } else {
-            previewContent.append(`<p class="alert alert-warning">No se puede previsualizar este tipo de archivo: <strong>.${fileExtension}</strong></p>`);
+        if (!doc || !doc.File) { // Asegurarse de que el objeto File exista
+            Swal.fire({
+                icon: 'error',
+                title: 'Error de Previsualización',
+                text: 'Documento no encontrado en la memoria o archivo no disponible.',
+                confirmButtonText: 'Aceptar'
+            });
+            return;
         }
-        previewModal.show();
+
+        const file = doc.File;
+        const reader = new FileReader();
+        const previewContent = $('#previewContent');
+        previewContent.empty();
+
+        reader.onload = function (e) {
+            if (file.type.startsWith('image/')) {
+                previewContent.append(`<img src="${e.target.result}" class="img-fluid" style="max-height: 80vh;" alt="Previsualización de imagen">`);
+            } else if (file.type === 'application/pdf') {
+                previewContent.append(`<embed src="${e.target.result}" type="application/pdf" width="100%" height="600px" />`);
+            } else {
+                previewContent.append('<p class="alert alert-warning">No se puede previsualizar este tipo de archivo.</p>');
+            }
+            // Mostrar el modal después de cargar el contenido
+            new bootstrap.Modal(document.getElementById('previewModal')).show();
+        };
+        reader.readAsDataURL(file);
     });
 
     function getFileMimeType(extension) {
@@ -322,9 +346,24 @@ $(document).ready(function () {
         }
     }
 
+    // ====================================================================
+    // Navegación de Pasos
+    // ====================================================================
+
+    $('#btnNextStep').on('click', function () {
+        if (validateStep(currentStep)) {
+            showStep(currentStep + 1);
+        }
+    });
+
+    $('#btnBack').on('click', function () {
+        if (currentStep > 1) {
+            showStep(currentStep - 1);
+        }
+    });
 
     // ====================================================================
-    // Envío del Formulario (AJAX)
+    // Envío del Formulario (AJAX con FormData)
     // ====================================================================
 
     form.on('submit', async function (e) {
@@ -335,18 +374,20 @@ $(document).ready(function () {
             return; // validateStep ya muestra un Swal.fire
         }
 
-        // Validar que se haya subido al menos un documento (si es requerido por tu lógica de negocio)
-        const totalDocuments = loadedDocuments.asegurado.length + loadedDocuments.caso.length;
-        if (totalDocuments === 0) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Documentos requeridos',
-                text: 'Debes subir al menos un documento para continuar.',
-                confirmButtonText: 'Aceptar',
-                confirmButtonColor: '#f06548'
-            });
-            return;
-        }
+        // REMOVIDO: Validación para que se haya subido al menos un documento.
+        // Los documentos ahora son opcionales.
+        // La lógica original era:
+        // const totalDocuments = loadedDocuments.asegurado.length + loadedDocuments.caso.length;
+        // if (totalDocuments === 0) {
+        //     Swal.fire({
+        //         icon: 'error',
+        //         title: 'Documentos requeridos',
+        //         text: 'Debes subir al menos un documento para continuar.',
+        //         confirmButtonText: 'Aceptar',
+        //         confirmButtonColor: '#f06548'
+        //     });
+        //     return;
+        // }
 
         // Mostrar spinner o mensaje de carga
         Swal.fire({
@@ -358,64 +399,47 @@ $(document).ready(function () {
             }
         });
 
-        // Recolectar datos del formulario en un objeto DTO
-        const formData = new FormData(this);
-        const casoDto = {
-            // Asegurado
-            NombreCompleto: formData.get('NombreCompleto'),
-            Identificacion: formData.get('Identificacion'),
-            Telefono: formData.get('Telefono'),
-            Email: formData.get('Email'),
-            Direccion: formData.get('Direccion'),
+        // Crear un objeto FormData y añadir todos los campos del formulario
+        const formDataToSend = new FormData(this); // 'this' es el formulario HTML
 
-            // Vehículo
-            Placa: formData.get('Placa'),
-            Marca: formData.get('Marca'),
-            Modelo: formData.get('Modelo'),
-            Transmision: formData.get('Transmision'),
-            Combustible: formData.get('Combustible'),
-            Cilindraje: formData.get('Cilindraje'),
-            Anio: formData.get('Anio') ? parseInt(formData.get('Anio')) : null,
-            NumeroChasis: formData.get('NumeroChasis'),
-            NumeroMotor: formData.get('NumeroMotor'),
-            TipoVehiculo: formData.get('TipoVehiculo'),
-            Clase: formData.get('Clase'),
-            Color: formData.get('Color'),
-            ObservacionesVehiculo: formData.get('ObservacionesVehiculo'),
+        // Añadir los archivos cargados dinámicamente al FormData
+        // Asegurado
+        loadedDocuments.asegurado.forEach((doc, index) => {
+            formDataToSend.append(`DocumentosAsegurado[${index}].TipoDocumentoId`, doc.TipoDocumentoId);
+            formDataToSend.append(`DocumentosAsegurado[${index}].File`, doc.File, doc.File.name); // El objeto File
+            formDataToSend.append(`DocumentosAsegurado[${index}].Observaciones`, doc.Observaciones);
+        });
 
-            // Caso
-            NumeroAvaluo: formData.get('NumeroAvaluo'),
-            NumeroReclamo: formData.get('NumeroReclamo'),
-            FechaSiniestro: formData.get('FechaSiniestro'),
-            CasoEstadoId: parseInt(formData.get('CasoEstadoId')),
+        // Caso
+        loadedDocuments.caso.forEach((doc, index) => {
+            formDataToSend.append(`DocumentosCaso[${index}].TipoDocumentoId`, doc.TipoDocumentoId);
+            formDataToSend.append(`DocumentosCaso[${index}].File`, doc.File, doc.File.name); // El objeto File
+            formDataToSend.append(`DocumentosCaso[${index}].Observaciones`, doc.Observaciones);
+        });
 
-            // Documentos (ya están en loadedDocuments)
-            DocumentosAsegurado: loadedDocuments.asegurado.map(doc => ({
-                TipoDocumentoId: doc.TipoDocumentoId,
-                NombreArchivo: doc.NombreArchivo,
-                ContenidoBinario: doc.ContenidoBase64, // Enviar como Base64
-                Observaciones: doc.Observaciones
-            })),
-            DocumentosCaso: loadedDocuments.caso.map(doc => ({
-                TipoDocumentoId: doc.TipoDocumentoId,
-                NombreArchivo: doc.NombreArchivo,
-                ContenidoBinario: doc.ContenidoBase64, // Enviar como Base64
-                Observaciones: doc.Observaciones
-            })),
+        // NOTA: Si tienes arrays separados en loadedDocuments para FotosDano y ValoresComercialesFiles
+        // y quieres que se mapeen a propiedades separadas en CrearCasoInputDto,
+        // deberías iterar sobre ellos de manera similar.
+        // Por ejemplo, si loadedDocuments.fotosDano existe:
+        // loadedDocuments.fotosDano.forEach((doc, index) => {
+        //     formDataToSend.append(`FotosDano[${index}].TipoDocumentoId`, doc.TipoDocumentoId);
+        //     formDataToSend.append(`FotosDano[${index}].File`, doc.File, doc.File.name);
+        //     formDataToSend.append(`FotosDano[${index}].Observaciones`, doc.Observaciones);
+        // });
+        // Y lo mismo para ValoresComercialesFiles.
 
-            // Auditoría
-            UsuarioId: usuarioIdFromModel // Usar el UsuarioId inyectado desde el modelo
-        };
+        // Añadir el UsuarioId inyectado desde el modelo
+        formDataToSend.append('UsuarioId', usuarioIdFromModel);
 
         try {
-            const response = await fetch('/api/Caso/crear', {
+            const response = await fetch(crearCasoApiUrl, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    // Si usas AntiForgeryToken, descomenta y asegúrate de que el token esté en la vista
-                    // 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
-                },
-                body: JSON.stringify(casoDto)
+                // NO establecer Content-Type. El navegador lo establecerá automáticamente para FormData.
+                // Si usas AntiForgeryToken, descomenta y asegúrate de que el token esté en la vista
+                // headers: {
+                //     'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                // },
+                body: formDataToSend // Enviar el objeto FormData directamente
             });
 
             if (response.ok) {
@@ -425,6 +449,7 @@ $(document).ready(function () {
             } else {
                 // Si el controlador devuelve un error HTTP (ej. 400, 401, 409, 500)
                 // y no redirige, entonces procesamos la respuesta JSON de error.
+                // Asegúrate de que tu controlador devuelva un JSON de error si no hay redirección.
                 const errorData = await response.json();
                 Swal.fire({
                     icon: 'error',
@@ -446,17 +471,4 @@ $(document).ready(function () {
             Swal.hideLoading(); // Ocultar spinner
         }
     });
-
-    // Script para la validación de Bootstrap 5 (se mantiene para la validación HTML5)
-    var forms = document.querySelectorAll('.needs-validation');
-    Array.prototype.slice.call(forms)
-        .forEach(function (form) {
-            form.addEventListener('submit', function (event) {
-                if (!form.checkValidity()) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                form.classList.add('was-validated');
-            }, false);
-        });
 });

@@ -672,3 +672,228 @@ BEGIN
         RAISERROR(@ErrorMessage, @ErrorSeverity, @ErrorState);
     END CATCH;
 END;
+
+-- 12) Procedimiento almacenado reforzado
+-- =============================================
+-- Procedimiento almacenado: sp_ListarTiposDocumento
+-- Descripción: sp que lista los tipos de documentos
+-- =============================================
+CREATE OR ALTER PROCEDURE sp_ListarTiposDocumento
+    @solo_activos BIT = 1, -- Filtrar solo los activos por defecto
+    @ambito NVARCHAR(20) = NULL, -- Filtrar por ámbito específico (opcional)
+    @resultado INT OUTPUT -- Parámetro de salida para el resultado (0=OK, Negativo=Error)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Declaración de variables para manejo de errores
+    DECLARE @ErrorMessage NVARCHAR(4000);
+    DECLARE @ErrorSeverity INT;
+    DECLARE @ErrorState INT;
+
+    -- Inicializar parámetro de salida
+    SET @resultado = 0;
+
+    BEGIN TRY
+        SELECT
+            tipo_documento_id,
+            nombre_tipo,
+            ambito_documento,
+            descripcion,
+            activo,
+            created_at,
+            updated_at,
+            created_by,
+            updated_by
+        FROM TiposDocumento
+        WHERE (@solo_activos = 0 OR activo = 1)
+          AND (@ambito IS NULL OR ambito_documento = @ambito)
+        ORDER BY nombre_tipo;
+
+    END TRY
+    BEGIN CATCH
+        -- Capturar los detalles del error
+        SELECT
+            @ErrorMessage = ERROR_MESSAGE(),
+            @ErrorSeverity = ERROR_SEVERITY(),
+            @ErrorState = ERROR_STATE();
+
+        -- Asignar un código de error específico para el resultado
+        SET @resultado = -1; -- Por ejemplo, -1 para indicar un error al listar
+
+        -- Opcional: Relanzar el error original si la aplicación cliente necesita ver los detalles completos
+        -- RAISERROR(@ErrorMessage, @ErrorSeverity, @ErrorState);
+
+        -- Puedes loguear el error aquí si tienes una tabla de logs
+        -- INSERT INTO ErrorLogs (Message, Severity, State, ProcedureName, Timestamp)
+        -- VALUES (@ErrorMessage, @ErrorSeverity, @ErrorState, 'sp_ListarTiposDocumento', SYSUTCDATETIME());
+
+    END CATCH;
+END;
+
+-- 13) Procedimiento almacenado reforzado
+-- =============================================
+-- Procedimiento almacenado: sp_ListarEstadosCaso
+-- Descripción: sp que lista los tipos de documentos
+-- =============================================
+CREATE OR ALTER PROCEDURE sp_ListarEstadosCaso
+    @solo_activos BIT = 1, -- Filtrar solo los estados activos por defecto
+    @resultado INT OUTPUT    -- Parámetro de salida para el resultado (0=OK, Negativo=Error)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Declaración de variables para manejo de errores
+    DECLARE @ErrorMessage NVARCHAR(4000);
+    DECLARE @ErrorSeverity INT;
+    DECLARE @ErrorState INT;
+
+    -- Inicializar parámetro de salida
+    SET @resultado = 0;
+
+    BEGIN TRY
+        SELECT
+            estado_id,
+            nombre_estado,
+            descripcion,
+            activo,
+            created_at,
+            updated_at,
+            created_by,
+            updated_by
+        FROM EstadosCaso
+        WHERE (@solo_activos = 0 OR activo = 1)
+        ORDER BY nombre_estado;
+
+    END TRY
+    BEGIN CATCH
+        -- Capturar los detalles del error
+        SELECT
+            @ErrorMessage = ERROR_MESSAGE(),
+            @ErrorSeverity = ERROR_SEVERITY(),
+            @ErrorState = ERROR_STATE();
+
+        -- Asignar un código de error específico para el resultado
+        SET @resultado = -1; -- Por ejemplo, -1 para indicar un error al listar
+
+        -- Opcional: Relanzar el error original si la aplicación cliente necesita ver los detalles completos
+        -- RAISERROR(@ErrorMessage, @ErrorSeverity, @ErrorState);
+
+        -- Puedes loguear el error aquí si tienes una tabla de logs
+        -- INSERT INTO ErrorLogs (Message, Severity, State, ProcedureName, Timestamp)
+        -- VALUES (@ErrorMessage, @ErrorSeverity, @ErrorState, 'sp_ListarEstadosCaso', SYSUTCDATETIME());
+
+    END CATCH;
+END;
+-- 14) Procedimiento almacenado reforzado
+-- =============================================
+-- Procedimiento almacenado: sp_ListarCasos
+-- Descripción: sp que lista los casos
+-- =============================================
+CREATE OR ALTER PROCEDURE sp_ListarCasos
+    -- Parámetros de Ordenamiento (Opcionales)
+    @sort_column NVARCHAR(50) = 'created_at', -- Columna por la que ordenar (ej. 'numero_avaluo', 'fecha_creacion')
+    @sort_direction NVARCHAR(4) = 'DESC'      -- Dirección del ordenamiento ('ASC' o 'DESC')
+AS
+BEGIN
+    SET NOCOUNT ON; -- Evita que se devuelvan recuentos de filas afectadas
+
+    -- Declaración de variables para manejo de errores
+    DECLARE @ErrorMessage NVARCHAR(4000);
+    DECLARE @ErrorSeverity INT;
+    DECLARE @ErrorState INT;
+
+    BEGIN TRY
+        -- Construir la cláusula ORDER BY dinámicamente
+        DECLARE @order_by_clause NVARCHAR(MAX);
+        SET @order_by_clause = ' ORDER BY ';
+
+        -- Validar y construir la columna de ordenamiento
+        IF @sort_column = 'caso_id' SET @order_by_clause = @order_by_clause + 'c.caso_id';
+        ELSE IF @sort_column = 'numero_avaluo' SET @order_by_clause = @order_by_clause + 'c.numero_avaluo';
+        ELSE IF @sort_column = 'nombre_asegurado' SET @order_by_clause = @order_by_clause + 'a.nombre_completo';
+        ELSE IF @sort_column = 'placa' SET @order_by_clause = @order_by_clause + 'v.placa';
+        ELSE IF @sort_column = 'marca' SET @order_by_clause = @order_by_clause + 'v.marca';
+        ELSE IF @sort_column = 'modelo' SET @order_by_clause = @order_by_clause + 'v.modelo';
+        ELSE IF @sort_column = 'estado_caso' SET @order_by_clause = @order_by_clause + 'e.nombre_estado';
+        ELSE IF @sort_column = 'fecha_siniestro' SET @order_by_clause = @order_by_clause + 'c.fecha_siniestro';
+        ELSE IF @sort_column = 'created_at' SET @order_by_clause = @order_by_clause + 'c.created_at';
+        ELSE -- Por defecto, si la columna no es válida o no se especifica
+            SET @order_by_clause = @order_by_clause + 'c.created_at';
+
+        -- Añadir la dirección del ordenamiento
+        IF UPPER(@sort_direction) = 'DESC'
+            SET @order_by_clause = @order_by_clause + ' DESC';
+        ELSE
+            SET @order_by_clause = @order_by_clause + ' ASC';
+
+        -- Obtener todos los casos con el ordenamiento especificado
+        DECLARE @select_sql NVARCHAR(MAX);
+        SET @select_sql = '
+            SELECT
+                c.caso_id,
+                c.numero_avaluo,
+                a.nombre_completo AS nombre_asegurado,
+                v.placa,
+                v.marca,
+                v.modelo,
+                e.nombre_estado AS estado_caso,
+                c.fecha_siniestro,
+                c.cliente,
+                c.numero_reclamo,
+                c.created_at,
+                u.usuario_login AS creado_por -- Asumiendo que ''nombre_usuario'' es ''usuario_login''
+            FROM Casos c
+            INNER JOIN Asegurados a ON c.asegurado_id = a.asegurado_id
+            INNER JOIN Vehiculos v ON c.vehiculo_id = v.vehiculo_id
+            INNER JOIN EstadosCaso e ON c.caso_estado_id = e.estado_id
+            INNER JOIN Usuarios u ON c.created_by = u.usuario_id'
+            + @order_by_clause + ';'; -- Solo la cláusula ORDER BY
+
+        -- Ejecutar la consulta
+        EXEC sp_executesql @select_sql;
+
+    END TRY
+    BEGIN CATCH
+        -- Si ocurre un error, captura los detalles
+        SELECT
+            @ErrorMessage = ERROR_MESSAGE(),
+            @ErrorSeverity = ERROR_SEVERITY(),
+            @ErrorState = ERROR_STATE();
+
+        -- Relanza el error para que la aplicación cliente pueda manejarlo
+        RAISERROR(@ErrorMessage, @ErrorSeverity, @ErrorState);
+    END CATCH;
+END;
+
+-- 15) Procedimiento almacenado reforzado
+-- =============================================
+-- Procedimiento almacenado: sp_ListarTiposDocumentoPorAmbito
+-- Descripción: sp que lista los casos
+-- =============================================
+
+CREATE OR ALTER PROCEDURE sp_ListarTiposDocumentoPorAmbito
+    @ambito_documento NVARCHAR(20)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRY
+        SELECT
+            tipo_documento_id,
+            nombre_tipo,
+            ambito_documento
+        FROM
+            TiposDocumento
+        WHERE
+            ambito_documento = @ambito_documento
+            AND activo = 1 -- Asegúrate de que solo se listen tipos de documento activos
+        ORDER BY
+            nombre_tipo; -- Ordena los resultados por el nombre del tipo de documento
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        DECLARE @ErrorSeverity INT = ERROR_SEVERITY();
+        DECLARE @ErrorState INT = ERROR_STATE();
+        RAISERROR(@ErrorMessage, @ErrorSeverity, @ErrorState);
+    END CATCH
+END;

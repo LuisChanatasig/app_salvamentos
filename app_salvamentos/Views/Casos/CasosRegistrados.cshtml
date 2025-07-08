@@ -1,7 +1,8 @@
-﻿@{
+﻿@model IEnumerable<app_salvamentos.Models.CasoListadoDto>
+@{
     ViewBag.Title = "Listado de Casos";
-    ViewBag.pTitle = "Listado de casos";
-    ViewBag.pageTitle = "Listado de casos";
+    ViewBag.pTitle = "Listado de casos"; // Título de la página en Velzon
+    ViewBag.pageTitle = "Listado de casos"; // Título de la sección en Velzon
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
@@ -16,7 +17,12 @@
         <div class="card">
             <div class="card-header border-0">
                 <h4 class="card-title mb-0">📋 Bandeja de Casos</h4>
-            </div>
+                <div class="d-flex justify-content-end mt-2">
+                    <a href="@Url.Action("CrearCasos", "Casos", new { area = "" })" class="btn btn-success add-btn">
+                        <i class="ri-add-line align-bottom me-1"></i> Crear Caso
+                    </a>
+                </div>
+            </div><!-- end card header -->
 
             <div class="card-body">
                 <div class="table-responsive">
@@ -25,7 +31,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th data-priority="1">ID</th>
-                                <th data-priority="2">Fecha</th>
+                                <th data-priority="2">Fecha creación</th>
                                 <th data-priority="3">Indemnizado</th>
                                 <th>Placa</th>
                                 <th>Marca</th>
@@ -35,42 +41,58 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td>001</td>
-                                <td>2025-07-02</td>
-                                <td>Juan Pérez</td>
-                                <td>ABC-123</td>
-                                <td>Toyota</td>
-                                <td>Corolla</td>
-                                <td><span class="badge bg-warning">CREADO</span></td>
-                                <td>
-                                    <a href="@Url.Action("AnálisisCaso","Analisis")" class="btn btn-sm btn-soft-primary">
-                                        <i class="ri-eye-line"></i> Ver
-                                    </a>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>002</td>
-                                <td>2025-06-29</td>
-                                <td>María Gómez</td>
-                                <td>XYZ-456</td>
-                                <td>Hyundai</td>
-                                <td>Accent</td>
-                                <td><span class="badge bg-info">EN ANÁLISIS</span></td>
-                                <td>
-                                    <a href="@Url.Action("AnálisisCaso","Analisis")" class="btn btn-sm btn-soft-primary">
-                                        <i class="ri-eye-line"></i> Ver
-                                    </a>
-                                </td>
-                            </tr>
+                            @if (Model != null && Model.Any())
+                            {
+                                @foreach (var caso in Model)
+                                {
+                                    <tr>
+                                        <td>@caso.caso_id</td>
+                                        <td>@caso.fecha_siniestro.ToString("yyyy-MM-dd")</td> 
+                                        <td>@caso.nombre_asegurado</td> 
+                                        <td>@caso.placa</td>
+                                        <td>@caso.marca</td>
+                                        <td>@caso.modelo</td>
+                                        <td>
+                                            @{
+                                                string badgeClass = "bg-secondary"; // Default
+                                                switch (caso.estado_caso.ToUpper()) // Usar estado_caso
+                                                {
+                                                    case "CREADO":
+                                                        badgeClass = "bg-warning";
+                                                        break;
+                                                    case "EN ANÁLISIS":
+                                                        badgeClass = "bg-info";
+                                                        break;
+                                                    case "FINALIZADO":
+                                                        badgeClass = "bg-success";
+                                                        break;
+                                                    // Añade más casos si tienes otros estados
+                                                }
+                                            }
+                                            <span class="badge @badgeClass">@caso.estado_caso.ToUpper()</span>
+                                        </td>
+                                        <td>
+                                            <a href="@Url.Action("AnálisisCaso", "Analisis", new { id = caso.caso_id })" class="btn btn-sm btn-soft-primary">
+                                                <i class="ri-eye-line"></i> Ver
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="8" class="text-center">No se encontraron casos.</td>
+                                </tr>
+                            }
                         </tbody>
                     </table>
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
- 
+            </div><!-- end card-body -->
+        </div><!-- end card -->
+    </div><!-- end col -->
+</div><!-- end row -->
+
 @section scripts {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"
             integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
@@ -108,6 +130,7 @@
                     { extend: 'print', className: 'btn btn-light btn-sm' }
                 ],
                 createdRow: function (row, data) {
+                    // data[6] es el valor de la columna 'Estado' en el array de datos de la fila
                     if (data[6].includes('CREADO')) $(row).addClass('table-warning');
                     else if (data[6].includes('ANÁLISIS')) $(row).addClass('table-info');
                     else if (data[6].includes('FINALIZADO')) $(row).addClass('table-success');

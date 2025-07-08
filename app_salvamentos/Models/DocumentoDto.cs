@@ -3,8 +3,8 @@
     public class DocumentoDto
     {
         public int TipoDocumentoId { get; set; }
-        public string NombreArchivo { get; set; } = null!;
-        public byte[] ContenidoBinario { get; set; } = Array.Empty<byte>();
-        public string? Observaciones { get; set; }
+        public string NombreArchivo { get; set; }
+        public string RutaFisica { get; set; } // CAMBIO: Ahora es string para la ruta física
+        public string Observaciones { get; set; }
     }
 }

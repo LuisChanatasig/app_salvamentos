@@ -4,35 +4,16 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-@*
-    Asegúrate de que tus archivos CSS y JS de Velzon/Bootstrap estén correctamente enlazados en tu _Layout.cshtml.
-    Necesitarás:
-    - Bootstrap CSS/JS
-    - Remixicon CSS (para los iconos ri-*)
-    - SweetAlert2 JS (para los mensajes de TempData)
-    - jQuery (si usas $(document).ready)
-    - Choices.js (para los selects mejorados)
-    Ejemplo en _Layout.cshtml:
-    <link href="~/assets/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
-    <link href="~/assets/css/app.min.css" rel="stylesheet" type="text/css" />
-    <link href="~/assets/css/icons.min.css" rel="stylesheet" type="text/css" />
-    <link href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" rel="stylesheet" />
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <script src="~/assets/libs/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
-*@
-
 <div class="row justify-content-center">
-    <div class="col-lg-10">
+    <div class="col-lg-12">
         <div class="card card-height-100">
             <div class="card-header">
                 <h4 class="card-title mb-0">📝 Crear Nuevo Caso</h4>
             </div>
 
             <div class="card-body">
-                <form id="crearCasoForm" method="post" class="row g-3 needs-validation" novalidate>
+                @* Importante: enctype="multipart/form-data" es crucial para el envío de archivos *@
+                <form id="crearCasoForm" method="post" class="row g-3 needs-validation" novalidate enctype="multipart/form-data">
                     <!-- STEP 1: Datos del Asegurado y Vehículo -->
                     <div class="step" id="step1">
                         <h5><i class="ri-user-2-line me-2"></i>Datos del Asegurado</h5>
@@ -44,21 +25,25 @@
                                 <div class="invalid-feedback">Este campo es requerido.</div>
                             </div>
                             <div class="col-md-6 mb-3">
+                                @* Este campo estaba oculto, ahora es visible según tu controlador *@
                                 <label asp-for="Identificacion" class="form-label">Identificación (Cédula/RUC)</label>
                                 <input asp-for="Identificacion" type="text" class="form-control" placeholder="Ej. 1712345678" />
                                 <span asp-validation-for="Identificacion" class="text-danger"></span>
                             </div>
                             <div class="col-md-6 mb-3">
+                                @* Este campo estaba oculto, ahora es visible *@
                                 <label asp-for="Telefono" class="form-label">Teléfono</label>
                                 <input asp-for="Telefono" type="tel" class="form-control" placeholder="Ej. 0991234567" />
                                 <span asp-validation-for="Telefono" class="text-danger"></span>
                             </div>
                             <div class="col-md-6 mb-3">
+                                @* Este campo estaba oculto, ahora es visible *@
                                 <label asp-for="Email" class="form-label">Email</label>
                                 <input asp-for="Email" type="email" class="form-control" placeholder="Ej. correo@ejemplo.com" />
                                 <span asp-validation-for="Email" class="text-danger"></span>
                             </div>
                             <div class="col-md-12 mb-3">
+                                @* Este campo estaba oculto, ahora es visible *@
                                 <label asp-for="Direccion" class="form-label">Dirección</label>
                                 <input asp-for="Direccion" type="text" class="form-control" placeholder="Ej. Av. Principal 123, Ciudad" />
                                 <span asp-validation-for="Direccion" class="text-danger"></span>
@@ -74,59 +59,70 @@
                                 <div class="invalid-feedback">Este campo es requerido.</div>
                             </div>
                             <div class="col-md-4 mb-3">
+                                @* Este campo estaba oculto, ahora es visible *@
                                 <label asp-for="Marca" class="form-label">Marca</label>
                                 <input asp-for="Marca" type="text" class="form-control" placeholder="Ej. Toyota" />
                                 <span asp-validation-for="Marca" class="text-danger"></span>
                             </div>
                             <div class="col-md-4 mb-3">
+                                @* Este campo estaba oculto, ahora es visible *@
                                 <label asp-for="Modelo" class="form-label">Modelo</label>
                                 <input asp-for="Modelo" type="text" class="form-control" placeholder="Ej. Corolla" />
                                 <span asp-validation-for="Modelo" class="text-danger"></span>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label asp-for="Anio" class="form-label">Año</label>
-                                <input asp-for="Anio" type="number" class="form-control" placeholder="Ej. 2020" />
+                                <input asp-for="Anio" type="number" class="form-control" placeholder="Ej. 2020" required />
                                 <span asp-validation-for="Anio" class="text-danger"></span>
+                                <div class="invalid-feedback">Este campo es requerido.</div>
                             </div>
                             <div class="col-md-4 mb-3">
+                                @* Este campo estaba oculto, ahora es visible *@
                                 <label asp-for="Transmision" class="form-label">Transmisión</label>
                                 <input asp-for="Transmision" type="text" class="form-control" placeholder="Ej. Manual/Automática" />
                                 <span asp-validation-for="Transmision" class="text-danger"></span>
                             </div>
                             <div class="col-md-4 mb-3">
+                                @* Este campo estaba oculto, ahora es visible *@
                                 <label asp-for="Combustible" class="form-label">Combustible</label>
                                 <input asp-for="Combustible" type="text" class="form-control" placeholder="Ej. Gasolina/Diésel" />
                                 <span asp-validation-for="Combustible" class="text-danger"></span>
                             </div>
                             <div class="col-md-4 mb-3">
+                                @* Este campo estaba oculto, ahora es visible *@
                                 <label asp-for="Cilindraje" class="form-label">Cilindraje</label>
                                 <input asp-for="Cilindraje" type="text" class="form-control" placeholder="Ej. 1800cc" />
                                 <span asp-validation-for="Cilindraje" class="text-danger"></span>
                             </div>
                             <div class="col-md-4 mb-3">
+                                @* Este campo estaba oculto, ahora es visible *@
                                 <label asp-for="NumeroChasis" class="form-label">Número de Chasis</label>
                                 <input asp-for="NumeroChasis" type="text" class="form-control" placeholder="Ej. VIN1234567890" />
                                 <span asp-validation-for="NumeroChasis" class="text-danger"></span>
                             </div>
                             <div class="col-md-4 mb-3">
+                                @* Este campo estaba oculto, ahora es visible *@
                                 <label asp-for="NumeroMotor" class="form-label">Número de Motor</label>
                                 <input asp-for="NumeroMotor" type="text" class="form-control" placeholder="Ej. MOT1234567890" />
                                 <span asp-validation-for="NumeroMotor" class="text-danger"></span>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label asp-for="TipoVehiculo" class="form-label">Tipo de Vehículo</label>
-                                <input asp-for="TipoVehiculo" type="text" class="form-control" placeholder="Ej. Sedan/SUV" />
+                                <input asp-for="TipoVehiculo" type="text" class="form-control" placeholder="Ej. Sedan/SUV" required />
                                 <span asp-validation-for="TipoVehiculo" class="text-danger"></span>
+                                <div class="invalid-feedback">Este campo es requerido.</div>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label asp-for="Clase" class="form-label">Clase</label>
-                                <input asp-for="Clase" type="text" class="form-control" placeholder="Ej. Particular/Comercial" />
+                                <input asp-for="Clase" type="text" class="form-control" placeholder="Ej. Particular/Comercial" required />
                                 <span asp-validation-for="Clase" class="text-danger"></span>
+                                <div class="invalid-feedback">Este campo es requerido.</div>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label asp-for="Color" class="form-label">Color</label>
-                                <input asp-for="Color" type="text" class="form-control" placeholder="Ej. Rojo/Blanco" />
+                                <input asp-for="Color" type="text" class="form-control" placeholder="Ej. Rojo/Blanco" required />
                                 <span asp-validation-for="Color" class="text-danger"></span>
+                                <div class="invalid-feedback">Este campo es requerido.</div>
                             </div>
                             <div class="col-md-12 mb-3">
                                 <label asp-for="ObservacionesVehiculo" class="form-label">Observaciones del Vehículo</label>
@@ -138,26 +134,32 @@
                         <h5 class="mt-4"><i class="ri-file-text-line me-2"></i>Datos del Caso</h5>
                         <div class="row">
                             <div class="col-md-6 mb-3">
+                                @* Este campo estaba oculto, ahora es visible *@
                                 <label asp-for="NumeroAvaluo" class="form-label">Número de Avalúo</label>
                                 <input asp-for="NumeroAvaluo" type="text" class="form-control" placeholder="Ej. AV-2024-001" required />
                                 <span asp-validation-for="NumeroAvaluo" class="text-danger"></span>
                                 <div class="invalid-feedback">Este campo es requerido.</div>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label asp-for="NumeroReclamo" class="form-label">Número de Reclamo (opcional)</label>
+                                <label asp-for="NumeroReclamo" class="form-label">Número de Reclamo</label>
                                 <input asp-for="NumeroReclamo" type="text" class="form-control" placeholder="Ej. REC-2024-001" />
                                 <span asp-validation-for="NumeroReclamo" class="text-danger"></span>
                             </div>
                             <div class="col-md-6 mb-3">
+                                @* Este campo estaba oculto, ahora es visible *@
                                 <label asp-for="FechaSiniestro" class="form-label">Fecha del Siniestro</label>
                                 <input asp-for="FechaSiniestro" type="date" class="form-control" required />
                                 <span asp-validation-for="FechaSiniestro" class="text-danger"></span>
                                 <div class="invalid-feedback">Este campo es requerido.</div>
                             </div>
+                            @* Descomentado el select de CasoEstadoId *@
                             <div class="col-md-6 mb-3">
                                 <label asp-for="CasoEstadoId" class="form-label">Estado del Caso</label>
-                                <select asp-for="CasoEstadoId" asp-items="Model.EstadosCaso" class="form-select" data-choices data-choices-search-false required>
-                                    <option value="">Seleccione un estado</option>
+                                <select asp-for="CasoEstadoId" class="form-select" data-choices data-choices-search-false required>
+                                    @foreach (var tipo in Model.EstadosCaso)
+                                    {
+                                        <option value="@tipo.Value">@tipo.Text</option>
+                                    }
                                 </select>
                                 <span asp-validation-for="CasoEstadoId" class="text-danger"></span>
                                 <div class="invalid-feedback">Este campo es requerido.</div>
@@ -176,7 +178,8 @@
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
                                 <label for="documentoTipo" class="form-label">Tipo de Documento</label>
-                                <select id="documentoTipo" class="form-select" data-choices data-choices-search-false>
+                                <select id="documentoTipo" class="form-select" >
+                                    @* Añadido 'required' para este select *@
                                     <option value="">Seleccione un tipo</option>
                                     <optgroup label="Documentos del Asegurado">
                                         @foreach (var tipo in Model.TiposDocumentoAsegurado)
@@ -191,11 +194,13 @@
                                         }
                                     </optgroup>
                                 </select>
+                                <div class="invalid-feedback">Debe seleccionar un tipo de documento.</div>
                             </div>
 
                             <div class="col-md-6">
                                 <label for="archivosDocumento" class="form-label">Seleccionar Archivos</label>
-                                <input type="file" id="archivosDocumento" class="form-control" multiple accept=".jpg,.jpeg,.png,.pdf" />
+                                <input type="file" id="archivosDocumento" class="form-control" multiple accept=".jpg,.jpeg,.png,.pdf" /> @* Añadido 'required' *@
+                                <div class="invalid-feedback">Debe seleccionar al menos un archivo.</div>
                             </div>
 
                             <div class="col-md-12">
@@ -249,10 +254,13 @@
 
 @section Scripts {
     <script>
+        var crearCasoApiUrl = '@Url.Action("CrearCaso", "Casos")'; // Asegúrate de que la URL sea correcta
+        var usuarioIdFromModel = @Model.UsuarioId; // Inyectar el UsuarioId desde el modelo
+    </script>
+    <script>
         // Inyectar mensajes de TempData en JavaScript
         var errorMessage = '@Html.Raw(TempData["ErrorMessage"])';
         var successMessage = '@Html.Raw(TempData["SuccessMessage"])';
-        var initialUsuarioId = @Model.UsuarioId; // Inyectar el UsuarioId desde el modelo
 
         // Este script es solo para mostrar los SweetAlerts inyectados por TempData
         $(document).ready(function () {
@@ -273,6 +281,9 @@
             }
         });
     </script>
-    <script src="~/js/crear-caso.js"></script>
-   
+
+    <script src="~/js/crear-caso.js"></script> <!-- Tu script personalizado -->
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }

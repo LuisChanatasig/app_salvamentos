@@ -1,4 +1,7 @@
-﻿<div class="table-responsive">
+﻿@model IEnumerable<app_salvamentos.Models.CasoListadoDto>
+
+
+<div class="table-responsive">
     <table id="contenidoCasosModal"
            class="table nowrap dt-responsive align-middle table-hover table-bordered w-100">
         <thead class="table-light">
@@ -14,41 +17,69 @@
             </tr>
         </thead>
         <tbody>
-            <tr>
-                <td>001</td>
-                <td>2025-07-02</td>
-                <td>Juan Pérez</td>
-                <td>ABC-123</td>
-                <td>Toyota</td>
-                <td>Corolla</td>
-                <td><span class="badge bg-warning">CREADO</span></td>
-                <td>
-                    <a href="@Url.Action("AnálisisCaso","Analisis")" class="btn btn-sm btn-soft-primary">
-                        <i class="ri-eye-line"></i> Ver
-                    </a>
-                </td>
-            </tr>
-            <tr>
-                <td>002</td>
-                <td>2025-06-29</td>
-                <td>María Gómez</td>
-                <td>XYZ-456</td>
-                <td>Hyundai</td>
-                <td>Accent</td>
-                <td><span class="badge bg-info">EN ANÁLISIS</span></td>
-                <td>
-                    <a href="@Url.Action("AnálisisCaso","Analisis")" class="btn btn-sm btn-soft-primary">
-                        <i class="ri-eye-line"></i> Ver
-                    </a>
-                </td>
-            </tr>
+            @if (Model != null && Model.Any())
+            {
+                @foreach (var caso in Model)
+                {
+                    <tr>
+                        <td>@caso.caso_id</td>
+                        <td>@caso.fecha_siniestro.ToString("yyyy-MM-dd")</td>
+                        <td>@caso.nombre_asegurado</td>
+                        <td>@caso.placa</td>
+                        <td>@caso.marca</td>
+                        <td>@caso.modelo</td>
+                        <td>
+                            @{
+                                string badgeClass = "bg-secondary"; // Default
+                                switch (caso.estado_caso.ToUpper())
+                                {
+                                    case "CREADO":
+                                        badgeClass = "bg-warning";
+                                        break;
+                                    case "EN ANÁLISIS":
+                                        badgeClass = "bg-info";
+                                        break;
+                                    case "FINALIZADO":
+                                        badgeClass = "bg-success";
+                                        break;
+                                        // Añade más casos si tienes otros estados
+                                }
+                            }
+                            <span class="badge @badgeClass">@caso.estado_caso.ToUpper()</span>
+                        </td>
+                        <td>
+                            <div class="d-flex gap-2">
+                           
+                                <a href="@Url.Action("AnálisisCaso", "Analisis", new { id = caso.caso_id })" class="btn btn-sm btn-soft-primary">
+                                    <i class="ri-eye-line"></i> Ver
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="8" class="text-center">No se encontraron casos.</td>
+                </tr>
+            }
         </tbody>
     </table>
 </div>
 
 <script>
-    $(function () {
-        $('#modal-casos-table').DataTable({
+    // Este script se ejecutará una vez que el contenido del modal sea cargado en el DOM.
+    // Es crucial que jQuery y DataTables ya estén cargados en la página principal.
+    $(document).ready(function () {
+        // Destruir cualquier instancia existente de DataTables en esta tabla
+        // Esto es útil si el modal se abre y cierra varias veces.
+        if ($.fn.DataTable.isDataTable('#contenidoCasosModal')) {
+            $('#contenidoCasosModal').DataTable().destroy();
+        }
+
+        // Inicializar DataTables para la tabla dentro del modal
+        $('#contenidoCasosModal').DataTable({
             responsive: {
                 details: {
                     type: 'column',
@@ -60,7 +91,7 @@
             language: {
                 url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json'
             },
-            dom: 'Bfrtip',
+            dom: 'Bfrtip', // Mostrar botones de exportación, búsqueda, etc.
             buttons: [
                 { extend: 'copyHtml5', className: 'btn btn-light btn-sm' },
                 { extend: 'excelHtml5', className: 'btn btn-light btn-sm' },
@@ -68,10 +99,26 @@
                 { extend: 'print', className: 'btn btn-light btn-sm' }
             ],
             createdRow: function (row, data) {
+                // data[6] es el valor de la columna 'Estado' en el array de datos de la fila
                 if (data[6].includes('CREADO')) $(row).addClass('table-warning');
                 else if (data[6].includes('ANÁLISIS')) $(row).addClass('table-info');
                 else if (data[6].includes('FINALIZADO')) $(row).addClass('table-success');
             }
+        });
+
+        // Manejar el clic en el botón "Seleccionar"
+        $('.select-case-btn').on('click', function() {
+            var casoId = $(this).data('caso-id');
+            // Aquí puedes llamar a una función en la ventana principal o disparar un evento
+            // para pasar el casoId. Por ejemplo, si tienes una función global:
+            if (typeof window.onCaseSelected === 'function') {
+                window.onCaseSelected(casoId);
+            } else {
+                // Si no hay una función global, puedes usar un evento personalizado
+                $(document).trigger('caseSelected', casoId);
+            }
+            // Opcional: Cerrar el modal después de seleccionar
+            // $('#tuModalId').modal('hide'); // Reemplaza 'tuModalId' con el ID de tu modal Bootstrap
         });
     });
 </script>

@@ -57,6 +57,31 @@ namespace app_salvamentos.Servicios
         public ErrorInternoSPCasoException(string message) : base(message, -99) { }
         public ErrorInternoSPCasoException(string message, Exception innerException) : base(message, -99, innerException) { }
     }
+
+    // Excepción personalizada para listar casos
+    public class ListarCasosException : Exception
+    {
+        public ListarCasosException(string message) : base(message) { }
+        public ListarCasosException(string message, Exception innerException) : base(message, innerException) { }
+    }
+
+    /// <summary>
+    /// Excepción personalizada para cuando un caso no es encontrado.
+    /// </summary>
+    public class CasoNoEncontradoException : Exception
+    {
+        public CasoNoEncontradoException(string message) : base(message) { }
+        public CasoNoEncontradoException(string message, Exception innerException) : base(message, innerException) { }
+    }
+
+    /// <summary>
+    /// Excepción personalizada para errores generales al interactuar con casos.
+    /// </summary>
+    public class CasoServiceException : Exception
+    {
+        public CasoServiceException(string message) : base(message) { }
+        public CasoServiceException(string message, Exception innerException) : base(message, innerException) { }
+    }
     public class CasosService
     {
         private readonly IDbConnection _db;
@@ -72,10 +97,11 @@ namespace app_salvamentos.Servicios
         /// Crea un caso completo, incluyendo asegurado, vehículo y documentos asociados.
         /// </summary>
         /// <param name="dto">Objeto DTO con todos los datos necesarios para la creación del caso.</param>
+        /// <param name="usuarioId">El ID del usuario que realiza la operación (para auditoría).</param>
         /// <returns>El ID del caso recién creado.</returns>
         /// <exception cref="CasoCreationException">Lanzada para errores específicos durante la creación del caso.</exception>
         /// <exception cref="Exception">Lanzada para errores inesperados.</exception>
-        public async Task<int> CrearCasoCompletoAsync(CrearCasoDto dto)
+        public async Task<int> CrearCasoCompletoAsync(CrearCasoDto dto, int usuarioId)
         {
             const string storedProcedure = "sp_CrearCasoCompleto";
 
@@ -83,24 +109,24 @@ namespace app_salvamentos.Servicios
             var documentosAseguradoTable = new DataTable();
             documentosAseguradoTable.Columns.Add("tipo_documento_id", typeof(int));
             documentosAseguradoTable.Columns.Add("nombre_archivo", typeof(string));
-            documentosAseguradoTable.Columns.Add("contenido_binario", typeof(byte[]));
+            documentosAseguradoTable.Columns.Add("ruta_fisica", typeof(string)); // CAMBIO: Columna para la ruta
             documentosAseguradoTable.Columns.Add("observaciones", typeof(string));
 
             foreach (var doc in dto.DocumentosAsegurado)
             {
-                documentosAseguradoTable.Rows.Add(doc.TipoDocumentoId, doc.NombreArchivo, doc.ContenidoBinario, doc.Observaciones);
+                documentosAseguradoTable.Rows.Add(doc.TipoDocumentoId, doc.NombreArchivo, doc.RutaFisica, doc.Observaciones); // CAMBIO: Usar RutaFisica
             }
 
             // Crear DataTable para documentos del Caso (TVP)
             var documentosCasoTable = new DataTable();
             documentosCasoTable.Columns.Add("tipo_documento_id", typeof(int));
             documentosCasoTable.Columns.Add("nombre_archivo", typeof(string));
-            documentosCasoTable.Columns.Add("contenido_binario", typeof(byte[]));
+            documentosCasoTable.Columns.Add("ruta_fisica", typeof(string)); // CAMBIO: Columna para la ruta
             documentosCasoTable.Columns.Add("observaciones", typeof(string));
 
             foreach (var doc in dto.DocumentosCaso)
             {
-                documentosCasoTable.Rows.Add(doc.TipoDocumentoId, doc.NombreArchivo, doc.ContenidoBinario, doc.Observaciones);
+                documentosCasoTable.Rows.Add(doc.TipoDocumentoId, doc.NombreArchivo, doc.RutaFisica, doc.Observaciones); // CAMBIO: Usar RutaFisica
             }
 
             var parameters = new DynamicParameters();
@@ -139,7 +165,7 @@ namespace app_salvamentos.Servicios
             parameters.Add("@documentos_caso", documentosCasoTable.AsTableValuedParameter("dbo.DocumentoCasoTableType"));
 
             // Parámetro de Auditoría
-            parameters.Add("@usuario_id", dto.UsuarioId);
+            parameters.Add("@usuario_id", usuarioId); // Se toma del parámetro del método
 
             // Parámetros de Salida del SP
             parameters.Add("@resultado", dbType: DbType.Int32, direction: ParameterDirection.Output);
@@ -199,8 +225,6 @@ namespace app_salvamentos.Servicios
             catch (SqlException ex)
             {
                 _logger.LogError(ex, "Error de SQL al intentar crear el caso con avalúo '{NumeroAvaluo}'. Mensaje: {Message}", dto.NumeroAvaluo, ex.Message);
-                // Aquí podrías intentar parsear el mensaje de error de SQL para dar una excepción más específica
-                // si el SP no devuelve un resultado numérico para todos los casos de error.
                 throw new Exception($"Error de base de datos al crear el caso: {ex.Message}", ex);
             }
             catch (CasoCreationException)
@@ -220,7 +244,164 @@ namespace app_salvamentos.Servicios
                 }
             }
         }
+        /// <summary>
+        /// Lista todos los casos con ordenamiento dinámico.
+        /// </summary>
+        /// <param name="sortColumn">Columna por la que ordenar (ej. 'numero_avaluo', 'created_at').</param>
+        /// <param name="sortDirection">Dirección del ordenamiento ('ASC' o 'DESC').</param>
+        /// <returns>Una lista de objetos CasoListadoDto.</returns>
+        /// <exception cref="ListarCasosException">Lanzada si ocurre un error al listar los casos.</exception>
+        public async Task<IEnumerable<CasoListadoDto>> ListarCasosAsync(
+            string sortColumn = "created_at",
+            string sortDirection = "DESC")
+        {
+            const string storedProcedure = "sp_ListarCasos"; // Nombre de tu Stored Procedure
 
+            // Configurar los parámetros para el Stored Procedure
+            var parameters = new DynamicParameters();
+            parameters.Add("@sort_column", sortColumn, DbType.String, size: 50);
+            parameters.Add("@sort_direction", sortDirection, DbType.String, size: 4);
+
+            try
+            {
+                // Asegúrate de que la conexión esté abierta.
+                // Dapper a menudo abre la conexión automáticamente si es necesario,
+                // pero es buena práctica asegurarse si se realizan múltiples operaciones.
+                if (_db.State == ConnectionState.Closed)
+                {
+                    _db.Open();
+                }
+
+                _logger.LogInformation("Ejecutando SP '{SPName}' con ordenamiento. Columna: '{SortColumn}', Dirección: '{SortDirection}'",
+                    storedProcedure, sortColumn, sortDirection);
+
+                // Ejecutar el Stored Procedure y mapear los resultados a CasoListadoDto
+                var casos = await _db.QueryAsync<CasoListadoDto>(
+                    storedProcedure,
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                );
+
+                // Convertir a lista para poder obtener el conteo, si es necesario.
+                // Si el resultado es grande, considera usar .AsList() o .ToArray() si necesitas múltiples enumeraciones.
+                var casosList = casos.ToList();
+
+                _logger.LogInformation("SP '{SPName}' ejecutado exitosamente. Se encontraron {Count} casos.",
+                    storedProcedure, casosList.Count);
+
+                return casosList;
+            }
+            catch (SqlException ex) // Captura excepciones específicas de SQL Server
+            {
+                _logger.LogError(ex, "Error de SQL al intentar listar casos desde el SP '{SPName}'. Mensaje: {Message}", storedProcedure, ex.Message);
+                // Envuelve la excepción SQL en una excepción de capa de servicio más amigable
+                throw new ListarCasosException($"Error de base de datos al listar casos: {ex.Message}", ex);
+            }
+            catch (Exception ex) // Captura cualquier otra excepción inesperada
+            {
+                _logger.LogError(ex, "Error inesperado al intentar listar casos desde el SP '{SPName}'. Mensaje: {Message}", storedProcedure, ex.Message);
+                // Envuelve la excepción en una excepción de capa de servicio más amigable
+                throw new ListarCasosException($"Ocurrió un error inesperado al listar casos: {ex.Message}", ex);
+            }
+            finally
+            {
+                // Es buena práctica cerrar la conexión si se abrió explícitamente aquí
+                // o si el ciclo de vida de IDbConnection no es gestionado por el DI para mantenerla abierta.
+                if (_db.State == ConnectionState.Open)
+                {
+                    _db.Close();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Retrieves the full details of a case by its ID.
+        /// </summary>
+        /// <param name="casoId">The ID of the case to retrieve.</param>
+        /// <returns>A CasoDetalleDto object if the case is found.</returns>
+        /// <exception cref="CasoNoEncontradoException">Thrown if the case does not exist.</exception>
+        /// <exception cref="CasoServiceException">Thrown for other unexpected errors.</exception>
+        public async Task<CasoDetalleDto> ObtenerCasoPorIdAsync(string casoId) // Assuming caso_id is string like "001"
+        {
+            const string storedProcedure = "sp_ObtenerCasoPorId";
+
+            var parameters = new DynamicParameters();
+            parameters.Add("@caso_id", casoId, DbType.String, ParameterDirection.Input, 50); // Adjust DbType and size as per your DB schema
+            parameters.Add("@resultado", dbType: DbType.Int32, direction: ParameterDirection.Output); // Output parameter from SP
+
+            try
+            {
+                // Ensure the database connection is open.
+                // Dapper often automatically opens the connection if needed,
+                // but it's good practice to ensure it if multiple operations are performed.
+                if (_db.State == ConnectionState.Closed)
+                {
+                    _db.Open();
+                }
+
+                _logger.LogInformation("Executing SP '{SPName}' to get case ID: {CasoId}", storedProcedure, casoId);
+
+                // Execute the stored procedure and map the result to CasoDetalleDto.
+                // QueryFirstOrDefaultAsync is suitable as the SP is expected to return a single row or null.
+                var caso = await _db.QueryFirstOrDefaultAsync<CasoDetalleDto>(
+                    storedProcedure,
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                );
+
+                // Retrieve the value of the output parameter
+                int resultadoSp = parameters.Get<int>("@resultado");
+
+                // Handle results based on the SP's output parameter
+                if (resultadoSp == -1)
+                {
+                    _logger.LogWarning("Case with ID {CasoId} not found (SP result: -1).", casoId);
+                    throw new CasoNoEncontradoException($"Case with ID {casoId} not found.");
+                }
+                else if (resultadoSp == -99)
+                {
+                    _logger.LogError("Internal SP error '{SPName}' when getting case ID: {CasoId}.", storedProcedure, casoId);
+                    throw new CasoServiceException($"An internal server error occurred while retrieving the case.");
+                }
+
+                // If resultadoSp is 0 (OK) but caso is null, it means the SP returned 0 rows unexpectedly.
+                if (caso == null)
+                {
+                    _logger.LogWarning("Case with ID {CasoId} not found (SP returned 0 rows, but result was 0).", casoId);
+                    throw new CasoNoEncontradoException($"Case with ID {casoId} not found.");
+                }
+
+                _logger.LogInformation("Case with ID {CasoId} retrieved successfully.", casoId);
+                return caso;
+            }
+            catch (SqlException ex) // Catch specific SQL Server exceptions
+            {
+                _logger.LogError(ex, "SQL error when retrieving case ID {CasoId} from SP '{SPName}'. Message: {Message}", casoId, storedProcedure, ex.Message);
+                throw new CasoServiceException($"Database error when retrieving case: {ex.Message}", ex);
+            }
+            catch (CasoNoEncontradoException)
+            {
+                throw; // Re-throw the specific exception
+            }
+            catch (CasoServiceException)
+            {
+                throw; // Re-throw the specific exception
+            }
+            catch (Exception ex) // Catch any other unexpected exceptions
+            {
+                _logger.LogError(ex, "Unexpected error when retrieving case ID {CasoId} from SP '{SPName}'. Message: {Message}", casoId, storedProcedure, ex.Message);
+                throw new CasoServiceException($"An unexpected error occurred while retrieving the case: {ex.Message}", ex);
+            }
+            finally
+            {
+                // It's good practice to close the connection if it was explicitly opened here,
+                // or if the IDbConnection lifecycle is not managed by DI to keep it open.
+                if (_db.State == ConnectionState.Open)
+                {
+                    _db.Close();
+                }
+            }
+        }
 
     }
 }
