@@ -1,0 +1,1533 @@
+﻿$(document).ready(function () {
+
+    let loadedValorFiles = []; // <<--- ¡¡Añade esta línea aquí!!
+    let loadedDamagePhotos = [];
+
+    function parseDecimal(value) {
+        if (value === null || value === undefined) return 0;
+        const cleanedValue = String(value).replace(/\./g, '').replace(/,/g, '.');
+        const parsed = parseFloat(cleanedValue);
+        return isNaN(parsed) ? 0 : parsed;
+    }
+
+    function readFileAsBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result.split(',')[1]); // Solo la parte Base64
+            reader.onerror = error => reject(error);
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // Referencias a elementos del formulario de documentos
+    const categoriaDocumentoSelect = $('#categoriaDocumento');
+    const archivosDocumentoInput = $('#archivosDocumento');
+    const observacionesDocumentoTextarea = $('#observacionesDocumento');
+    const listaDocumentosDiv = $('#listaDocumentos'); // Aquí es donde se añaden las tarjetas de documentos
+
+    // Instancia del modal de Bootstrap para previsualización
+    const previewContent = $('#previewContent');
+    const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+
+  
+    // ====================================================================================
+    // Lógica de Carga y Gestión de Documentos Generales (Caso, Asegurado, etc.)
+    // ====================================================================================
+
+    // Precargar documentos existentes en la UI (si loadedDocuments ya tiene datos)
+    function loadExistingDocumentsToUI() {
+        listaDocumentosDiv.empty(); // Limpiar el contenedor antes de recargar, para evitar duplicados en actualizaciones
+
+        Object.keys(window.loadedDocuments).forEach(ambitoKey => {
+            window.loadedDocuments[ambitoKey].forEach(doc => {
+                // `doc` ya viene normalizado desde el .cshtml (uiIndex, tipo_mime, nombre_tipo_documento, ambito_documento)
+                const fileMime = doc.tipo_mime;
+                const docItem = `
+                <div class="col-md-4 col-sm-6 mb-3 fade-in-up" data-ui-index="${doc.uiIndex}" data-doc-id="${doc.documento_id || ''}" data-ambito="${doc.ambito_documento.toLowerCase()}">
+                    <div class="card border card-animate">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0 me-3">
+                                    <i class="${getIconByType(fileMime)} fs-2 ${getColorByType(fileMime)}"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1 text-truncate" style="max-width: 150px;">${doc.nombre_archivo}</h6>
+                                    <small class="text-muted">${doc.nombre_tipo_documento} (${doc.ambito_documento})</small>
+                                </div>
+                                <div class="flex-shrink-0">
+                                    <button type="button" class="btn btn-sm btn-light p-0 remove-doc-btn" data-bs-toggle="tooltip" data-bs-placement="top" title="Eliminar">
+                                        <i class="ri-delete-bin-line text-danger"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-light p-0 preview-doc-btn ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Previsualizar">
+                                        <i class="ri-eye-line text-info"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            ${doc.observaciones ? `<p class="text-muted mt-2 mb-0 text-wrap"><small>Obs: ${doc.observaciones}</small></p>` : ''}
+                        </div>
+                    </div>
+                </div>
+                `;
+                listaDocumentosDiv.append(docItem);
+            });
+        });
+        // Re-inicializa los tooltips de Bootstrap después de añadir todos los elementos
+        $('[data-bs-toggle="tooltip"]').tooltip("dispose").tooltip();
+    }
+
+    // Llamar a la función para cargar documentos existentes al iniciar (ahora es seguro)
+    loadExistingDocumentsToUI();
+
+
+    $('#btnAgregarDoc').on('click', async function () {
+        const tipoDocumentoId = categoriaDocumentoSelect.val();
+        const tipoDocumentoText = categoriaDocumentoSelect.find("option:selected").text();
+        const selectedOptionElement = categoriaDocumentoSelect.find("option:selected");
+
+        // Lee el ámbito del atributo data-ambito, convirtiéndolo a minúsculas para coincidir con las claves de loadedDocuments
+        let ambitoFijo = selectedOptionElement.data("ambito") ? selectedOptionElement.data("ambito").toLowerCase() : 'caso'; // Default a 'caso' si no hay ámbito
+
+        // Validaciones iniciales
+        if (!tipoDocumentoId) {
+            categoriaDocumentoSelect.addClass("is-invalid");
+            Swal.fire({ icon: "warning", title: "Selección Requerida", text: "Por favor, seleccione un tipo de documento de la lista.", confirmButtonText: "Aceptar", confirmButtonColor: "#f7b84b", });
+            return;
+        } else {
+            categoriaDocumentoSelect.removeClass("is-invalid");
+        }
+
+        const observaciones = observacionesDocumentoTextarea.val();
+        const files = archivosDocumentoInput[0].files;
+
+        if (files.length === 0) {
+            Swal.fire({ icon: "warning", title: "Archivos Requeridos", text: "Por favor, seleccione al menos un archivo para subir.", confirmButtonText: "Aceptar", confirmButtonColor: "#f7b84b", });
+            return;
+        }
+
+        // --- Procesamiento de archivos seleccionados ---
+        for (const file of files) {
+            const uiId = crypto.randomUUID(); // Generar un ID único para la UI
+
+            // Re-evaluar el ámbito si hay lógica específica por tipoDocumentoId
+            // Esto sobrescribe el ámbito del data-ambito si hay una regla específica aquí
+            let finalAmbito = ambitoFijo; // Empezamos con el ámbito del data-ambito
+            if (parseInt(tipoDocumentoId) === 6) { // ID para 'Fotos del Siniestro'
+                finalAmbito = "dano";
+            } else if (parseInt(tipoDocumentoId) === 13) { // ID para 'Evidencia de Valores Comerciales'
+                finalAmbito = "valorcomercial";
+            }
+            // Importante: convertir a minúsculas para coincidir con las claves de window.loadedDocuments
+            finalAmbito = finalAmbito.toLowerCase();
+
+
+            if (!window.loadedDocuments.hasOwnProperty(finalAmbito)) {
+                console.error(`Error: El ámbito '${finalAmbito}' no es una categoría válida en loadedDocuments.`);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error Interno',
+                    text: 'Error en la configuración del tipo de documento. Contacte a soporte.',
+                    confirmButtonText: 'Aceptar'
+                });
+                return;
+            }
+
+            const yaExiste = window.loadedDocuments[finalAmbito].some(
+                doc => (doc.nombre_archivo === file.name || (doc.File && doc.File.name === file.name)) &&
+                    doc.tipo_documento_id === parseInt(tipoDocumentoId)
+            );
+
+            if (yaExiste) {
+                Swal.fire({ icon: "info", title: "Archivo Duplicado", text: `El archivo "${file.name}" con este tipo de documento ya ha sido añadido en el ámbito ${finalAmbito}.`, confirmButtonText: "Aceptar", confirmButtonColor: "#f7b84b", });
+                continue; // Saltar este archivo
+            }
+
+            try {
+                const newDoc = {
+                    tipo_documento_id: parseInt(tipoDocumentoId),
+                    nombre_tipo_documento: tipoDocumentoText,
+                    nombre_archivo: file.name,
+                    observaciones: observaciones,
+                    ambito_documento: finalAmbito.toUpperCase(), // Guardar en mayúsculas para backend si lo espera así
+                    File: file, // **IMPORTANTE**: Guardar el objeto File original
+                    uiIndex: uiId,
+                    tipo_mime: file.type // El tipo MIME del File es lo más preciso
+                };
+
+                window.loadedDocuments[finalAmbito].push(newDoc);
+                console.log(`Documento '${file.name}' agregado al ámbito '${finalAmbito}'.`);
+                console.log("Estado actual de loadedDocuments:", window.loadedDocuments);
+
+                // --- Añadir a la UI (card Bootstrap) ---
+                const docItem = `
+                <div class="col-md-4 col-sm-6 mb-3 fade-in-up" data-ui-index="${uiId}" data-ambito="${finalAmbito}">
+                    <div class="card border card-animate">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0 me-3">
+                                    <i class="${getIconByType(newDoc.tipo_mime)} fs-2 ${getColorByType(newDoc.tipo_mime)}"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1 text-truncate">${newDoc.nombre_archivo}</h6>
+                                    <small class="text-muted">${newDoc.nombre_tipo_documento} (${newDoc.ambito_documento})</small>
+                                </div>
+                                <div class="flex-shrink-0">
+                                    <button type="button" class="btn btn-sm btn-light p-0 remove-doc-btn" data-bs-toggle="tooltip" data-bs-placement="top" title="Eliminar">
+                                        <i class="ri-delete-bin-line text-danger"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-light p-0 preview-doc-btn ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Previsualizar">
+                                        <i class="ri-eye-line text-info"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            ${newDoc.observaciones ? `<p class="text-muted mt-2 mb-0 text-wrap"><small>Obs: ${newDoc.observaciones}</small></p>` : ''}
+                        </div>
+                    </div>
+                </div>
+                `;
+                listaDocumentosDiv.append(docItem);
+
+                // Re-inicializar tooltips para los nuevos elementos
+                $('[data-bs-toggle="tooltip"]').tooltip('dispose').tooltip();
+
+                Swal.fire({ toast: true, position: "top-end", icon: "success", title: "Archivo agregado", showConfirmButton: false, timer: 1500, });
+
+            } catch (error) {
+                console.error("Error al procesar archivo:", error);
+                Swal.fire({ icon: "error", title: "Error de Archivo", text: `No se pudo procesar el archivo ${file.name}.`, confirmButtonText: "Aceptar", });
+            }
+        }
+
+        // Limpiar campos después de agregar todos los archivos
+        archivosDocumentoInput.val('');
+        observacionesDocumentoTextarea.val('');
+        categoriaDocumentoSelect.val('');
+    });
+
+
+    // ====================================================================
+    // Evento: Eliminar Documentos (Delegación de Eventos)
+    // ====================================================================
+
+    listaDocumentosDiv.on("click", ".remove-doc-btn", function () {
+        const card = $(this).closest(".col-md-4");
+        const uiId = card.data("ui-index");
+        const documentoId = card.data("doc-id"); // Para documentos ya guardados en DB
+        const ambito = card.data("ambito"); // El ámbito del documento (ej. 'caso', 'asegurado')
+
+        Swal.fire({
+            title: "¿Estás seguro?",
+            text: "¡El documento será eliminado!",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            cancelButtonColor: "#3085d6",
+            confirmButtonText: "Sí, eliminarlo!",
+            cancelButtonText: "Cancelar",
+        }).then((result) => {
+            if (result.isConfirmed) {
+                if (documentoId) {
+                    // Si tiene documentoId, es un documento guardado en la BD
+                    $.ajax({
+                        url: `${API_DOCUMENTOS_BASE_URL}?documentoId=${documentoId}`, // Endpoint en C#
+                        type: "POST",
+                        headers: {
+                            'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() // Si usas anti-forgery tokens
+                        },
+                        success: function (response) {
+                            card.remove(); // Elimina la tarjeta de la UI
+                            // Eliminar del array loadedDocuments en memoria
+                            if (ambito && window.loadedDocuments.hasOwnProperty(ambito)) {
+                                window.loadedDocuments[ambito] = window.loadedDocuments[ambito].filter(doc => doc.documento_id !== documentoId);
+                                console.log(`Documento con ID ${documentoId} eliminado (DB) del ámbito ${ambito}.`);
+                            }
+                            Swal.fire("Eliminado!", "El documento ha sido eliminado de la base de datos.", "success");
+                        },
+                        error: function (xhr, status, error) {
+                            console.error("Error al eliminar documento de la BD:", xhr.responseText);
+                            const errorMessage = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : "Hubo un problema al eliminar el documento de la base de datos.";
+                            Swal.fire("Error!", errorMessage, "error");
+                        }
+                    });
+                } else if (typeof uiId !== 'undefined') {
+                    // Si solo tiene uiId, es un documento agregado localmente (en memoria)
+                    if (ambito && window.loadedDocuments.hasOwnProperty(ambito)) {
+                        window.loadedDocuments[ambito] = window.loadedDocuments[ambito].filter(doc => doc.uiIndex !== uiId);
+                        console.log(`Documento con uiId ${uiId} eliminado (memoria) del ámbito ${ambito}.`);
+                    }
+                    card.remove(); // Elimina la tarjeta de la UI
+                    Swal.fire("Eliminado!", "El documento ha sido removido de la lista temporal.", "success");
+                } else {
+                    Swal.fire("Error!", "No se pudo identificar el documento para eliminar.", "error");
+                }
+            }
+        });
+    });
+
+    // ====================================================================
+    // Evento: Previsualizar Documentos (Delegación de Eventos)
+    // ====================================================================
+
+    listaDocumentosDiv.on("click", ".preview-doc-btn", function () {
+        const card = $(this).closest(".col-md-4");
+        const uiId = card.data("ui-index");
+        const documentoId = card.data("doc-id"); // Este es el ID de la DB
+        const ambito = card.data("ambito");
+
+        let doc;
+        // Buscar el documento en el ámbito correcto
+        if (ambito && window.loadedDocuments.hasOwnProperty(ambito)) {
+            if (typeof uiId !== 'undefined') {
+                doc = window.loadedDocuments[ambito].find((d) => d.uiIndex === uiId);
+            } else if (documentoId) {
+                doc = window.loadedDocuments[ambito].find((d) => d.documento_id === documentoId);
+            }
+        }
+
+        if (!doc) {
+            Swal.fire({ icon: "error", title: "Error de Previsualización", text: "Documento no encontrado en la memoria o no se pudo identificar.", confirmButtonText: "Aceptar", });
+            return;
+        }
+
+        previewContent.empty(); // Limpiar contenido previo del modal
+
+        let previewSource;
+        let fileMime = doc.tipo_mime; // Ya debería venir normalizado
+        let fileName = doc.nombre_archivo;
+
+        // PRIORIDAD 1: Documentos recién agregados (en memoria, tienen el objeto File)
+        if (doc.File) {
+            fileMime = doc.File.type; // Obtiene el tipo MIME directamente del objeto File (más preciso)
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                previewSource = e.target.result;
+                displayPreview(fileMime, previewSource, fileName);
+                previewModal.show();
+            };
+            reader.readAsDataURL(doc.File);
+            return; // Salir para esperar que FileReader termine
+        }
+        // PRIORIDAD 2: Documentos ya guardados en DB (tienen documento_id y ruta_fisica)
+        else if (doc.documento_id && doc.ruta_fisica) {
+            // Genera la URL para obtener el archivo desde el servidor (tu controlador)
+            previewSource = `${API_CASOS_BASE_URL}?rutaRelativa=${encodeURIComponent(doc.ruta_fisica)}`;
+        }
+        else {
+            Swal.fire({ icon: "error", title: "Error de Previsualización", text: "No se encontró contenido o URL para previsualizar este documento.", confirmButtonText: "Aceptar", });
+            return;
+        }
+
+        // Si llega aquí, significa que la fuente de previsualización ya fue determinada (desde RutaPublica o ruta_fisica)
+        displayPreview(fileMime, previewSource, fileName);
+        previewModal.show();
+    });
+
+    // ====================================================================
+    // Función displayPreview
+    // ====================================================================
+    function displayPreview(mimeType, source, fileName) {
+        previewContent.empty(); // Limpiar antes de añadir nuevo contenido
+
+        if (mimeType.includes("image")) {
+            previewContent.append(`<img src="${source}" class="img-fluid" style="max-height: 80vh;" alt="${fileName}">`);
+        } else if (mimeType.includes("pdf")) {
+            previewContent.append(`<iframe src="${source}" width="100%" height="600px" style="border: none;"></iframe>`);
+        } else {
+            previewContent.append(`<p class="alert alert-warning">No se puede previsualizar este tipo de archivo: <strong>.${fileName.split(".").pop().toLowerCase()}</strong></p><a href="${source}" target="_blank" class="btn btn-primary mt-2">Descargar</a>`);
+        }
+    }
+    // ====================================================================
+    // Lógica para la sección de Valores Comerciales
+    // ====================================================================
+
+    const valorAseguradoInput = document.getElementById("valorAsegurado");
+    const valorMatriculaPendienteInput = document.getElementById(
+        "valorMatriculaPendiente"
+    );
+    const valorPatioTuercaInput = document.getElementById("valorPatioTuerca");
+    const valorMarketplaceInput = document.getElementById("valorMarketplace");
+    const valorHugoVargasInput = document.getElementById("valorHugoVargas");
+    const valorAEADEInput = document.getElementById("valorAEADE");
+    const valorOtrosInput = document.getElementById("valorOtros");
+    const promedioCalculadoInput = document.getElementById("promedioCalculado");
+    const promedioNetoInput = document.getElementById("promedioNeto");
+    const precioComercialSugerido = document.getElementById("precioComercialSugerido"); // Asegúrate de que este elemento existe
+    const precioEstimadoVentaVehiculo = document.getElementById("precioEstimadoVentaVehiculo"); // Asegúrate de que este elemento existe
+
+
+    // Asegúrate de que `loadedValorFiles` está declarado al inicio del script.
+    // Esto ya está resuelto con la declaración global `let loadedValorFiles = {...};`
+
+    $(".file-input-valor").on("change", async function () {
+        const inputId = $(this).attr("id");
+        const file = this.files[0];
+        const previewBtn = $(`button[data-file-id="${inputId}"].preview-valor-btn`);
+        const removeBtn = $(`button[data-file-id="${inputId}"].remove-valor-btn`);
+        const fileNameDisplay = $(`#fileName${inputId.replace("file", "")}`);
+
+        if (file) {
+            try {
+                const contenidoBase64 = await readFileAsBase64(file);
+                loadedValorFiles[inputId] = {
+                    nombre_archivo: file.name,
+                    contenido_base64: contenidoBase64,
+                    mime_type: file.type,
+                    file: file // **IMPORTANTE**: Guardar el objeto File original
+                };
+                fileNameDisplay.text(file.name);
+                previewBtn.removeClass("d-none");
+                removeBtn.removeClass("d-none");
+                Swal.fire({
+                    toast: true,
+                    position: "top-end",
+                    icon: "success",
+                    title: `Archivo ${file.name} cargado`,
+                    showConfirmButton: false,
+                    timer: 1500,
+                });
+            } catch (error) {
+                console.error("Error al leer archivo de valor comercial:", error);
+                Swal.fire({
+                    icon: "error",
+                    title: "Error de Archivo",
+                    text: `No se pudo leer el archivo ${file.name}.`,
+                    confirmButtonText: "Aceptar",
+                });
+                $(this).val("");
+                loadedValorFiles[inputId] = null;
+                fileNameDisplay.text("");
+                previewBtn.addClass("d-none");
+                removeBtn.addClass("d-none");
+            }
+        } else {
+            $(this).val("");
+            loadedValorFiles[inputId] = null;
+            fileNameDisplay.text("");
+            previewBtn.addClass("d-none");
+            removeBtn.addClass("d-none");
+        }
+    });
+
+    $(".preview-valor-btn").on("click", function () {
+        const fileId = $(this).data("file-id");
+        const fileData = loadedValorFiles[fileId];
+
+        if (!fileData) {
+            Swal.fire({
+                icon: "error",
+                title: "Error de Previsualización",
+                text: "Archivo no encontrado en la memoria.",
+                confirmButtonText: "Aceptar",
+            });
+            return;
+        }
+
+        previewContent.empty();
+        const base64Data = `data:${fileData.mime_type};base64,${fileData.contenido_base64}`;
+
+        if (fileData.mime_type.includes("image")) {
+            previewContent.append(
+                `<img src="${base64Data}" class="img-fluid" style="max-height: 80vh;" alt="${fileData.nombre_archivo}">`
+            );
+        } else if (fileData.mime_type.includes("pdf")) {
+            previewContent.append(
+                `<iframe src="${base64Data}" width="100%" height="600px" style="border: none;"></iframe>`
+            );
+        } else {
+            previewContent.append(
+                `<p class="alert alert-warning">No se puede previsualizar este tipo de archivo: <strong>${fileData.nombre_archivo.split(
+                    "."
+                )
+                    .pop()
+                    .toLowerCase()}</strong></p>`
+            );
+        }
+        previewModal.show();
+    });
+
+    $(".remove-valor-btn").on("click", function () {
+        const fileId = $(this).data("file-id");
+        const fileInput = $(`#${fileId}`);
+        const previewBtn = $(`button[data-file-id="${fileId}"].preview-valor-btn`);
+        const removeBtn = $(`button[data-file-id="${fileId}"].remove-valor-btn`);
+        const fileNameDisplay = $(`#fileName${fileId.replace("file", "")}`);
+
+        Swal.fire({
+            title: "¿Estás seguro?",
+            text: "El archivo se eliminará de la carga.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#3085d6",
+            cancelButtonColor: "#d33",
+            confirmButtonText: "Sí, eliminarlo!",
+            cancelButtonText: "Cancelar",
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fileInput.val("");
+                loadedValorFiles[fileId] = null;
+                fileNameDisplay.text("");
+                previewBtn.addClass("d-none");
+                removeBtn.addClass("d-none");
+                Swal.fire("Eliminado!", "El archivo ha sido removido.", "success");
+            }
+        });
+    });
+
+    function recalcularValoresComerciales() {
+        let sumValoresComerciales = 0;
+        let countValoresComerciales = 0;
+
+        // **CORRECCIÓN:** Usa parseDecimal para obtener los valores numéricos
+        const valoresComerciales = [
+            parseDecimal(valorPatioTuercaInput.value),
+            parseDecimal(valorMarketplaceInput.value),
+            parseDecimal(valorHugoVargasInput.value),
+            parseDecimal(valorAEADEInput.value),
+            parseDecimal(valorOtrosInput.value),
+        ];
+
+        valoresComerciales.forEach((val) => {
+            if (val > 0) { // Solo si el valor es positivo, lo incluimos en el promedio
+                sumValoresComerciales += val;
+                countValoresComerciales++;
+            }
+        });
+
+        let promedio = 0;
+        if (countValoresComerciales > 0) {
+            promedio = sumValoresComerciales / countValoresComerciales;
+        }
+        promedioCalculadoInput.value = promedio.toFixed(2);
+
+        let promedioV = 0;
+        const precioComercialSugeridoVal = parseDecimal(precioComercialSugerido.value); // **CORRECCIÓN**
+        if (countValoresComerciales > 0 && precioComercialSugeridoVal >= 0) { // **CORRECCIÓN**
+            promedioV = promedio - precioComercialSugeridoVal; // **CORRECCIÓN**
+        }
+
+        // Asegúrate de que precioEstimadoVentaVehiculo es un elemento HTML válido
+        if (precioEstimadoVentaVehiculo) {
+            precioEstimadoVentaVehiculo.value = promedioV.toFixed(2);
+        }
+
+
+        const valorMatricula = parseDecimal(valorMatriculaPendienteInput.value); // **CORRECCIÓN**
+        const promedioNetoCalc = promedio - valorMatricula; // Variable diferente para evitar conflicto con promedioNetoInput
+        promedioNetoInput.value = promedioNetoCalc.toFixed(2);
+
+        actualizarResumenFinal();
+    }
+
+    valorMatriculaPendienteInput.addEventListener(
+        "input",
+        recalcularValoresComerciales
+    );
+    valorAseguradoInput.addEventListener("input", actualizarResumenFinal);
+
+    document.querySelectorAll(".valor-comercial-input").forEach((input) => {
+        input.addEventListener("input", recalcularValoresComerciales);
+    });
+
+
+
+    // Referencias a los nuevos elementos HTML
+    const numMultasInput = $("#num_multas");
+    const individualMultasContainer = $("#individual_multas_container");
+    const totalMultasDisplay = $("#total_multas_display");
+
+    /**
+     * Genera dinámicamente los campos de entrada para cada multa individual
+     * basándose en el número de multas ingresado.
+     */
+    function renderMultasInputs() {
+        const numMultas = parseInt(numMultasInput.val()) || 0;
+        individualMultasContainer.empty();
+
+        if (numMultas > 0) {
+            let multaHtml = '<div class="row">';
+            for (let i = 0; i < numMultas; i++) {
+                multaHtml += `
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Valor Multa ${i + 1}</label>
+                    <input type="number" class="form-control individual-multa-valor" placeholder="Valor" data-multa-index="${i}" min="0" value="0" />
+                </div>
+            `;
+            }
+            multaHtml += '</div>';
+            individualMultasContainer.append(multaHtml);
+
+            individualMultasContainer.find(".individual-multa-valor").on("input", calculateTotalMultas);
+        }
+        calculateTotalMultas();
+    }
+
+    /**
+     * Calcula la suma total de los valores de las multas individuales
+     * y actualiza el campo de visualización del total.
+     */
+    function calculateTotalMultas() {
+        let total = 0;
+        individualMultasContainer.find(".individual-multa-valor").each(function () {
+            const valor = parseDecimal($(this).val()); // Usa parseDecimal
+            total += valor;
+        });
+        totalMultasDisplay.val(total.toFixed(2));
+    }
+
+    // ====================================================================
+    // Event Listeners e Inicialización (Multas)
+    // ====================================================================
+
+    numMultasInput.on("input", renderMultasInputs);
+    renderMultasInputs();
+    calculateTotalMultas();
+
+
+    // ====================================================================
+    // Lógica para la sección de Partes y Salvamento
+    // ====================================================================
+
+    document.getElementById("btnAgregarParte").addEventListener("click", () => {
+        const tbody = document.getElementById("tablaPartes");
+        const fila = document.createElement("tr");
+
+        fila.innerHTML = `
+        <td><input type="text" class="form-control parte-nombre-input" placeholder="Ej. Parachoques" /></td>
+        <td><input type="number" class="form-control parte-valor-nuevo-input" placeholder="0" /></td>
+        <td><input type="number" class="form-control parte-valor-depreciado-input" placeholder="0" /></td> <td><button type="button" class="btn btn-sm btn-danger btnEliminarParte">Eliminar</button></td>
+    `;
+
+        tbody.appendChild(fila);
+        // Llamada inicial para asegurar que el cálculo se haga si ya hay filas
+        recalcularSalvamento();
+        actualizarResumenFinal();
+    });
+
+    document
+        .getElementById("tablaPartes")
+        .addEventListener("click", function (e) {
+            if (e.target.classList.contains("btnEliminarParte")) {
+                e.target.closest("tr").remove();
+                recalcularSalvamento();
+                actualizarResumenFinal();
+            }
+        });
+
+    document
+        .getElementById("porcentajeDano")
+        .addEventListener("input", recalcularSalvamento);
+    document
+        .getElementById("porcentajeDano")
+        .addEventListener("input", actualizarResumenFinal);
+
+    document
+        .getElementById("tablaPartes")
+        .addEventListener("input", function (e) {
+            if (e.target.classList.contains("parte-valor-depreciado-input")) { // **CORRECCIÓN**: Usar la clase correcta
+                recalcularSalvamento();
+                actualizarResumenFinal();
+            }
+        });
+    function recalcularSalvamento() {
+        const porcentaje =
+            parseFloat(document.getElementById("porcentajeDano").value) || 0;
+        let totalDepreciado = 0;
+
+        document.querySelectorAll(".parte-valor-depreciado-input").forEach((input) => { // ¡CAMBIO AQUÍ!
+            totalDepreciado += parseFloat(input.value) || 0;
+        });
+
+        const valorSalvamento = ((100 - porcentaje) / 100) * totalDepreciado;
+        document.getElementById("valorSalvamento").value =
+            valorSalvamento.toFixed(2);
+    }
+    // ====================================================================
+    // Lógica para Fotos de Daños (Modificada)
+    // ====================================================================
+
+    const inputFotos = document.getElementById("fotosDanoInput");
+    const previewDanos = document.getElementById("previewDanos");
+    const countDanosBadge = $("#countDanos");
+
+    // loadedDamagePhotos ya está declarado al inicio del script.
+
+    function actualizarContadorFotos() {
+        countDanosBadge.text(loadedDamagePhotos.length);
+        // Swal.fire({ // Descomentar si quieres este toast cada vez que cambian las fotos
+        //     toast: true,
+        //     position: "top-end",
+        //     icon: "success",
+        //     title: `Total: ${loadedDamagePhotos.length} imagen(es)`,
+        //     showConfirmButton: false,
+        //     timer: 1500,
+        // });
+    }
+
+    inputFotos.addEventListener("change", async function () {
+        const files = this.files;
+
+        for (let file of files) {
+            const yaExiste = loadedDamagePhotos.some(
+                (photo) => photo.nombre_archivo === file.name
+            );
+            if (yaExiste) {
+                Swal.fire({
+                    icon: "info",
+                    title: "Archivo Duplicado",
+                    text: `La foto "${file.name}" ya ha sido añadida.`,
+                    confirmButtonText: "Aceptar",
+                });
+                continue;
+            }
+
+            try {
+                const contenidoBase64 = await readFileAsBase64(file);
+                const newPhoto = {
+                    nombre_archivo: file.name,
+                    contenido_base64: contenidoBase64,
+                    mime_type: file.type,
+                    observaciones: "", // Se llenará en el textarea
+                    file: file // **IMPORTANTE**: Guardar el objeto File original aquí
+                };
+
+                const uiIndex = loadedDamagePhotos.length;
+                newPhoto.uiIndex = uiIndex;
+
+                loadedDamagePhotos.push(newPhoto);
+
+                const photoItem = `
+                    <div class="col-md-3 col-sm-6 mb-3 dano-item-preview" data-ui-index="${uiIndex}">
+                        <div class="card border card-animate">
+                            <div class="card-body p-2 text-center">
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="flex-shrink-0 me-2">
+                                        <i class="ri-image-line fs-3 text-primary"></i>
+                                    </div>
+                                    <div class="flex-grow-1 text-start">
+                                        <h6 class="mb-0 text-truncate">${file.name}</h6>
+                                        <small class="text-muted">Foto de Daño</small>
+                                    </div>
+                                    <div class="flex-shrink-0">
+                                        <button type="button" class="btn btn-sm btn-light p-0 remove-dano-btn" data-bs-toggle="tooltip" data-bs-placement="top" title="Eliminar">
+                                            <i class="ri-delete-bin-line text-danger"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-light p-0 preview-dano-btn ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Previsualizar">
+                                            <i class="ri-eye-line text-info"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <img src="data:${file.type};base64,${contenidoBase64}" class="img-thumbnail mb-2" style="height: 120px; object-fit: cover; width: 100%;" alt="${file.name}" />
+                                <textarea class="form-control observacion-foto-input mt-2" rows="2" placeholder="Observación del daño" data-ui-index="${uiIndex}"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                previewDanos.insertAdjacentHTML("beforeend", photoItem);
+
+                $('[data-bs-toggle="tooltip"]').tooltip("dispose").tooltip();
+                actualizarContadorFotos();
+
+                Swal.fire({
+                    toast: true,
+                    position: "top-end",
+                    icon: "success",
+                    title: "Foto de daño agregada",
+                    showConfirmButton: false,
+                    timer: 1500,
+                });
+            } catch (error) {
+                console.error("Error al leer archivo de daño:", error);
+                Swal.fire({
+                    icon: "error",
+                    title: "Error de Archivo",
+                    text: `No se pudo leer la foto ${file.name}.`,
+                    confirmButtonText: "Aceptar",
+                });
+            }
+        }
+        this.value = null; // Limpiar el input file
+    });
+
+    previewDanos.addEventListener("click", (e) => {
+        if (e.target.closest(".remove-dano-btn")) {
+            const card = e.target.closest(".dano-item-preview"); // **CORRECCIÓN**: Usar la clase del item
+            const uiIndex = card.dataset.uiIndex;
+
+            Swal.fire({
+                title: "¿Estás seguro?",
+                text: "La foto se eliminará de la lista de carga.",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#3085d6",
+                cancelButtonColor: "#d33",
+                confirmButtonText: "Sí, eliminarla!",
+                cancelButtonText: "Cancelar",
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const realIndex = loadedDamagePhotos.findIndex(
+                        (photo) => photo.uiIndex === parseInt(uiIndex)
+                    );
+                    if (realIndex > -1) {
+                        loadedDamagePhotos.splice(realIndex, 1);
+                    }
+                    card.remove();
+                    actualizarContadorFotos();
+                    Swal.fire(
+                        "Eliminada!",
+                        "La foto ha sido removida de la lista.",
+                        "success"
+                    );
+                }
+            });
+        }
+    });
+
+    previewDanos.addEventListener("click", (e) => {
+        if (e.target.closest(".preview-dano-btn")) {
+            const card = e.target.closest(".dano-item-preview"); // **CORRECCIÓN**: Usar la clase del item
+            const uiIndex = card.dataset.uiIndex;
+
+            const photo = loadedDamagePhotos.find(
+                (p) => p.uiIndex === parseInt(uiIndex)
+            );
+
+            if (!photo) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Error de Previsualización",
+                    text: "Foto no encontrada en la memoria.",
+                    confirmButtonText: "Aceptar",
+                });
+                return;
+            }
+
+            previewContent.empty();
+            const base64Data = `data:${photo.mime_type};base64,${photo.contenido_base64}`;
+
+            if (photo.mime_type.includes("image")) {
+                previewContent.append(
+                    `<img src="${base64Data}" class="img-fluid" style="max-height: 80vh;" alt="${photo.nombre_archivo}">`
+                );
+            } else if (photo.mime_type.includes("pdf")) { // Good defensive practice though accept="image/*"
+                previewContent.append(
+                    `<iframe src="${base64Data}" width="100%" height="600px" style="border: none;"></iframe>`
+                );
+            } else {
+                previewContent.append(
+                    `<p class="alert alert-warning">No se puede previsualizar este tipo de archivo: <strong>.${photo.nombre_archivo.split(
+                        "."
+                    )
+                        .pop()
+                        .toLowerCase()}</strong></p>`
+                );
+            }
+            previewModal.show();
+        }
+    });
+
+    previewDanos.addEventListener("input", (e) => {
+        if (e.target.classList.contains("observacion-foto-input")) { // **CORRECCIÓN**: Usar la clase correcta
+            const uiIndex = e.target.dataset.uiIndex;
+            const photo = loadedDamagePhotos.find(
+                (p) => p.uiIndex === parseInt(uiIndex)
+            );
+            if (photo) {
+                photo.observaciones = e.target.value;
+            }
+        }
+    });
+
+    document
+        .getElementById("btnValidarFotos")
+        .addEventListener("click", function () {
+            const observaciones = document.querySelectorAll(".observacion-foto-input"); // **CORRECCIÓN**: Usar la clase correcta
+            let todasLlenas = true;
+            observaciones.forEach((obs) => {
+                // Solo validar si hay al menos una foto cargada
+                if (loadedDamagePhotos.length > 0 && !obs.value.trim()) {
+                    obs.classList.add("is-invalid");
+                    todasLlenas = false;
+                } else {
+                    obs.classList.remove("is-invalid");
+                }
+            });
+
+            if (todasLlenas) {
+                Swal.fire({
+                    icon: "success",
+                    title: "Listo",
+                    text: "Todas las observaciones están completas.",
+                });
+            } else {
+                Swal.fire({
+                    icon: "error",
+                    title: "Faltan observaciones",
+                    text: "Completa las observaciones para todas las fotos (si hay fotos cargadas).",
+                });
+            }
+        });
+
+    // ====================================================================
+    // Lógica para actualizar el Resumen Final
+    // ====================================================================
+
+    function actualizarResumenFinal() {
+        document.getElementById("resumenValorAsegurado").innerText = `$${(
+            parseDecimal(valorAseguradoInput.value)
+        ).toLocaleString("es-EC", { // **CORRECCIÓN**: Usar parseDecimal
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        })}`;
+        document.getElementById("resumenPromedioComercial").innerText = `$${(
+            parseDecimal(promedioCalculadoInput.value)
+        ).toLocaleString("es-EC", { // **CORRECCIÓN**: Usar parseDecimal
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        })}`;
+        document.getElementById("resumenValorMatricula").innerText = `$${(
+            parseDecimal(valorMatriculaPendienteInput.value)
+        ).toLocaleString("es-EC", { // **CORRECCIÓN**: Usar parseDecimal
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        })}`;
+        document.getElementById("resumenPromedioNeto").innerText = `$${(
+            parseDecimal(promedioNetoInput.value)
+        ).toLocaleString("en-US", { // **CORRECCIÓN**: Usar parseDecimal
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        })}`;
+        document.getElementById("resumenPorcentajeDano").innerText = `${(
+            parseDecimal(document.getElementById("porcentajeDano").value)
+        ).toFixed(0)}%`; // **CORRECCIÓN**: Usar parseDecimal
+        document.getElementById("resumenValorSalvamento").innerText = `$${(
+            parseDecimal(document.getElementById("valorSalvamento").value)
+        ).toLocaleString("en-US", { // **CORRECCIÓN**: Usar parseDecimal
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        })}`;
+    }
+
+    // Llamar a las funciones de cálculo y actualización al cargar la página
+    recalcularValoresComerciales();
+    recalcularSalvamento();
+    actualizarResumenFinal();
+    function agregarFilaParte(parte = {}) {
+        const nombre = parte.NombreParte || "";
+        const valorNuevo = parte.ValorNuevo ?? "";
+        const valorDepreciado = parte.ValorDepreciado ?? "";
+
+        const filaHtml = `
+        <tr>
+            <td><input type="text" class="form-control parte-nombre-input" value="${nombre}" /></td>
+            <td><input type="number" class="form-control parte-valor-nuevo-input" value="${valorNuevo}" /></td>
+            <td><input type="number" class="form-control parte-valor-depreciado-input" value="${valorDepreciado}" /></td>
+            <td><button type="button" class="btn btn-sm btn-danger btnEliminarParte">Eliminar</button></td>
+        </tr>
+    `;
+
+        $('#tablaPartes').append(filaHtml);
+    }
+
+    $(document).ready(function () {
+        const partes = window.datosCaso?.Partes || [];
+
+        partes.forEach(parte => agregarFilaParte(parte));
+
+        // También enganchamos el botón de agregar
+        $('#btnAgregarParte').on('click', () => agregarFilaParte());
+
+        // Eliminar fila
+        $('#tablaPartes').on('click', '.btnEliminarParte', function () {
+            $(this).closest('tr').remove();
+        });
+
+        // Lógica para recalcular al iniciar
+        recalcularSalvamento();
+    });
+  
+    class CasoFinancieroManager {
+        constructor() {
+            // 1. Inicialización de propiedades
+            this.casoId = window.casoId || null;
+            this.usuarioId = window.usuarioId || null;
+            this.aseguradoId = window.aseguradoId || null;
+            this.vehiculoId = window.vehiculoId || null;
+            this.currentTab = 'resumen';
+            this.lastSaveTime = null;
+            this.saveTimeout = null;
+            this.isDirty = false;
+            this.isAutoSaving = false;
+            this.crearCasoApiUrl = window.crearCasoApiUrl;
+
+            // 2. Configuración inicial
+            this.init();
+        }
+
+        // 3. Métodos de inicialización
+        init() {
+            this.initializeEventListeners();
+            this.inicializarManejadoresArchivosValorComercial();
+            this.startAutoSave();
+            this.setupGlobalDocumentHandlers();
+        }
+
+        initializeEventListeners() {
+            const $document = $(document);
+
+            // Cambios en formularios
+            $document.on('input change', 'input, select, textarea', () => {
+                if (!this.isAutoSaving) this.markAsDirty();
+            });
+
+            // Navegación entre tabs
+            $document.on('click', '.btn-next-tab, .btn-prev-tab', (e) => {
+                this.handleTabChange(e).catch(console.error);
+            });
+
+            // Submit del formulario
+            $('#crearAnalisisForm').off('submit').on('submit', (e) => {
+                e.preventDefault();
+                if (!this.isAutoSaving) this.saveData(false);
+            });
+
+            // Auto-guardado antes de cerrar
+            let beforeUnloadTimeout;
+            $(window).on('beforeunload', () => {
+                clearTimeout(beforeUnloadTimeout);
+                if (this.isDirty) {
+                    beforeUnloadTimeout = setTimeout(() => this.saveDataSync(), 100);
+                }
+            });
+        }
+
+        inicializarManejadoresArchivosValorComercial() {
+            const tiposDocumentos = [
+                { id: 'inputPatioTuercaFile', key: 'filePatioTuerca', label: 'Patio Tuerca', tipoDocId: 13 },
+                { id: 'inputAEADEFile', key: 'fileAEADE', label: 'AEADE', tipoDocId: 13 },
+                { id: 'inputMarketplaceFile', key: 'fileMarketplace', label: 'Marketplace', tipoDocId: 13 },
+                { id: 'inputHugoVargasFile', key: 'fileHugoVargas', label: 'Hugo Vargas', tipoDocId: 13 },
+                { id: 'inputOtrosFile', key: 'fileOtros', label: 'Otros', tipoDocId: 13 }
+            ];
+
+            window.loadedValorFiles = window.loadedValorFiles || {};
+
+            tiposDocumentos.forEach(({ id, key, label, tipoDocId }) => {
+                $(document).on('change', `#${id}`, (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        window.loadedValorFiles[key] = {
+                            file,
+                            tipo_documento_id: tipoDocId,
+                            observaciones: `Documento de ${label}`,
+                            ambito_documento: "VALORCOMERCIAL",
+                            nombre_archivo: file.name,
+                            ruta_fisica: ''
+                        };
+                    } else {
+                        delete window.loadedValorFiles[key];
+                    }
+                });
+            });
+        }
+
+        setupGlobalDocumentHandlers() {
+            window.loadedDocuments = window.loadedDocuments || { caso: [], asegurado: [] };
+            window.loadedDamagePhotos = window.loadedDamagePhotos || [];
+        }
+
+        // 4. Manejo de estado y auto-guardado
+        markAsDirty() {
+            if (this.isDirty) return;
+
+            this.isDirty = true;
+            clearTimeout(this.saveTimeout);
+
+            this.saveTimeout = setTimeout(() => {
+                if (this.isDirty && !this.isAutoSaving) {
+                    this.saveData(true);
+                }
+            }, 10000);
+        }
+
+        startAutoSave() {
+            setInterval(() => {
+                if (this.isDirty && !this.isAutoSaving &&
+                    document.visibilityState === 'visible') {
+                    this.saveData(true);
+                }
+            }, 30000);
+        }
+
+        // 5. Manejo de tabs
+        async handleTabChange(e) {
+            const $target = $(e.target);
+            const isNext = $target.hasClass('btn-next-tab');
+            const targetTab = $target.data('target')?.replace('#', '') || this.getNextTab(isNext);
+
+            if (this.isDirty) {
+                await this.saveData(true);
+            }
+
+            this.currentTab = targetTab;
+            this.switchTab(targetTab);
+        }
+
+        getNextTab(isNext) {
+            const tabs = ['resumen', 'documentos', 'valores', 'danos', 'partes', 'resumenfinal'];
+            const currentIndex = tabs.indexOf(this.currentTab);
+
+            if (isNext && currentIndex < tabs.length - 1) {
+                return tabs[currentIndex + 1];
+            } else if (!isNext && currentIndex > 0) {
+                return tabs[currentIndex - 1];
+            }
+
+            return this.currentTab;
+        }
+
+        switchTab(tabName) {
+            $('.tab-pane').removeClass('show active');
+            $(`#${tabName}`).addClass('show active');
+            $('.nav-link').removeClass('active');
+            $(`[href="#${tabName}"]`).addClass('active');
+        }
+
+        // 6. Métodos principales de guardado
+        async saveData(esGuardadoParcial = true, showLoading = true) {
+            if (!this.isDirty && esGuardadoParcial) return { success: true };
+
+            this.isAutoSaving = true;
+            if (showLoading) this.showSaveIndicator();
+
+            try {
+                const formData = this.buildFormData(esGuardadoParcial);
+                const response = await this.sendData(formData, esGuardadoParcial);
+
+                this.handleSaveSuccess(response, esGuardadoParcial, showLoading);
+                return { success: true, data: response };
+            } catch (error) {
+                this.handleSaveError(error, esGuardadoParcial, showLoading);
+                return { success: false, error };
+            } finally {
+                this.isAutoSaving = false;
+                if (showLoading && esGuardadoParcial) {
+                    setTimeout(() => this.hideSaveIndicator(), 2000);
+                }
+            }
+        }
+
+        buildFormData(esGuardadoParcial) {
+            const formData = new FormData();
+
+            // Datos básicos
+            this.appendBasicFormData(formData, esGuardadoParcial);
+
+            // Datos estructurados
+            this.appendStructuredData(formData);
+
+            // Documentos
+            this.appendDocumentData(formData);
+
+            // Debug en desarrollo
+            if (window.location.hostname === 'localhost') {
+                this.debugFormData(formData);
+            }
+
+
+            return formData;
+        }
+
+        appendBasicFormData(formData, esGuardadoParcial) {
+            formData.append('es_guardado_parcial', esGuardadoParcial);
+            formData.append('tab_actual', this.currentTab);
+            formData.append('casoId', this.casoId || '');
+            formData.append('usuarioId', this.usuarioId || '');
+            formData.append('aseguradoId', this.aseguradoId || '');
+            formData.append('vehiculoId', this.vehiculoId || '');
+            formData.append('NumeroReclamo', $('#numeroReclamo').val() || '');
+            const basicFields = [
+                'nombreCompleto', 'metodoAvaluo', 'direccionAvaluo',
+                'comentariosAvaluo', 'notasAvaluo', 'fechaSiniestro',
+                'fechaSolicitudAvaluo'
+            ];
+
+            basicFields.forEach(field => {
+                const value = $(`#${field}`).val();
+
+                // Validar fechas sólo para campos que son fechas
+                const isDateField = field.toLowerCase().includes('fecha');
+                if (value) {
+                    if (isDateField) {
+                        const d = new Date(value);
+                        if (!isNaN(d) && d.getFullYear() >= 1753) {
+                            formData.append(field.charAt(0).toUpperCase() + field.slice(1), value);
+                        } else {
+                            // Puedes loggear aquí para debug si quieres
+                            console.warn(`Fecha inválida para ${field}: ${value}`);
+                        }
+                    } else {
+                        formData.append(field.charAt(0).toUpperCase() + field.slice(1), value);
+                    }
+                }
+            });
+
+        }
+
+        appendStructuredData(formData) {
+            formData.append("Vehiculo", JSON.stringify(this.getVehiculoData()));
+            formData.append("Resumen", JSON.stringify(this.getResumenFinancieroData()));
+            formData.append("ValoresComerciales", JSON.stringify(this.getValoresComercialesData()));
+            formData.append("Danos", JSON.stringify(this.getDanosData()));
+            formData.append("Partes", JSON.stringify(this.getPartesData()));
+        }
+
+        getVehiculoData() {
+            return {
+                placa: $('#vehiculoPlaca').val(),
+                marca: this.nullIfEmpty($('#vehiculoMarca').val()),
+                modelo: this.nullIfEmpty($('#vehiculoModelo').val()),
+                transmision: this.nullIfEmpty($('#vehiculoTransmision').val()),
+                combustible: this.nullIfEmpty($('#vehiculoCombustible').val()),
+                cilindraje: this.nullIfEmpty($('#vehiculoCilindraje').val()),
+                anio: this.parseIntOrNull($('#vehiculoAnio').val()),
+                numeroChasis: this.nullIfEmpty($('#vehiculoNumeroChasis').val()),
+                numeroMotor: this.nullIfEmpty($('#vehiculoNumeroMotor').val()),
+                tipoVehiculo: this.nullIfEmpty($('#tipoVehiculo').val()),
+                clase: this.nullIfEmpty($('#vehiculoClase').val()),
+                color: this.nullIfEmpty($('#vehiculoColor').val()),
+                observaciones: this.nullIfEmpty($('#vehiculoObservaciones').val()),
+                gravamen: this.nullIfEmpty($('#vehiculoGravamen').val()),
+                placasMetalicas: this.nullIfEmpty($('#vehiculoPlacasMetalicas').val()),
+                radioVehiculo: this.nullIfEmpty($('#vehiculoRadio').val()),
+                estadoVehiculo: this.nullIfEmpty($('#vehiculoEstado').val())
+            };
+        }
+
+        getResumenFinancieroData() {
+            return {
+                fechaLimitePagoSri: this.nullIfEmpty($('#fechalimitepago').val()),
+                numeroMultas: this.parseIntOrNull($('#num_multas').val()),
+                valorMultasTotal: this.parseDecimal($('#total_multas_display').val()),
+                valorAsegurado: this.parseDecimal($('#valorAsegurado').val()),
+                valorMatriculaPendiente: this.parseDecimal($('#valorMatriculaPendiente').val()),
+                promedioCalculado: this.parseDecimal($('#promedioCalculado').val()),
+                promedioNeto: this.parseDecimal($('#promedioNeto').val()),
+                porcentajeDano: this.parseDecimal($('#porcentajeDano').val()),
+                valorSalvamento: this.parseDecimal($('#valorSalvamento').val()),
+                precioComercialSugerido: this.parseDecimal($('#precioComercialSugerido').val()),
+                precioBase: this.parseDecimal($('#precioBase').val()),
+                precioEstimadoVentaVehiculo: this.parseDecimal($('#precioEstimadoVentaVehiculo').val())
+            };
+        }
+
+        getValoresComercialesData() {
+            const valores = [];
+            const addValor = (fuente, selector) => {
+                const valor = this.parseDecimal($(selector).val());
+                if (valor > 0) {
+                    valores.push({ Fuente: fuente, Valor: valor });
+                }
+            };
+
+            addValor("Patio Tuerca", "#valorPatioTuerca");
+            addValor("AEADE", "#valorAEADE");
+            addValor("Marketplace", "#valorMarketplace");
+            addValor("Hugo Vargas", "#valorHugoVargas");
+            addValor("Otros", "#valorOtros");
+
+            return valores;
+        }
+
+        getDanosData() {
+            if (!window.loadedDamagePhotos) return [];
+
+            return window.loadedDamagePhotos.map(item => ({
+                Observaciones: item.observaciones || "",  // Mantén la propiedad vacía si no hay observaciones
+                nombre_archivo: item.nombre_archivo,      // Si necesitas enviar el nombre también
+                // Puedes agregar aquí más campos si son necesarios (como contenido_base64, mime_type, etc)
+            }));
+        }
+
+        getPartesData() {
+            const partes = [];
+            const parseDecimal = (val) => {
+                const num = parseFloat(val?.toString().replace(",", "."));
+                return isNaN(num) ? 0 : num;
+            };
+
+            $('#tablaPartes tr').each(function () {
+                const $row = $(this);
+                const nombreParte = $row.find('.parte-nombre-input').val()?.trim();
+                const valorNuevo = parseDecimal($row.find('.parte-valor-nuevo-input').val());
+                const valorDepreciado = parseDecimal($row.find('.parte-valor-depreciado-input').val());
+
+                if (nombreParte || valorNuevo !== 0 || valorDepreciado !== 0) {
+                    partes.push({
+                        NombreParte: nombreParte || "",
+                        ValorNuevo: valorNuevo,
+                        ValorDepreciado: valorDepreciado
+                    });
+                }
+            });
+
+            return partes;
+        }
+
+
+        appendDocumentData(formData) {
+            // Documentos del caso
+            if (window.loadedDocuments?.caso) {
+                this.appendDocumentList(formData, "DocumentosCasoInput", window.loadedDocuments.caso);
+            }
+
+            // Documentos de daño
+            const danosDocs = this.prepareDamageDocuments();
+            this.appendDocumentList(formData, "DocumentosDanoInput", danosDocs);
+
+            // Documentos de valores comerciales
+            const valoresDocs = this.prepareCommercialValueDocuments();
+            this.appendDocumentList(formData, "DocumentosValorComercialInput", valoresDocs);
+        }
+
+        prepareDamageDocuments() {
+            if (!window.loadedDamagePhotos) return [];
+
+            return window.loadedDamagePhotos.map(item => ({
+                file: item.file ?? null, // puede ser null
+                documento_id: item.documento_id || null,
+                tipo_documento_id: item.tipo_documento_id || 6,
+                observaciones: item.observaciones || `Observación de daño`,
+                ambito_documento: item.ambito_documento || "DANO",
+                nombre_archivo: item.nombre_archivo || '',
+                ruta_fisica: item.ruta_fisica || ''
+            }));
+        }
+
+
+
+        prepareCommercialValueDocuments() {
+            if (!window.loadedValorFiles) return [];
+
+            return Object.values(window.loadedValorFiles)
+                .filter(Boolean)
+                .map(item => ({
+                    file: item.file || null,
+                    documento_id: item.documento_id || null,
+                    tipo_documento_id: item.tipo_documento_id || 13,
+                    observaciones: item.observaciones || `Documento de Valor Comercial`,
+                    ambito_documento: item.ambito_documento || "VALORCOMERCIAL",
+                    nombre_archivo: item.nombre_archivo || '',
+                    ruta_fisica: item.ruta_fisica || ''
+                }));
+        }
+
+        appendDocumentList(formData, key, documents) {
+            documents.forEach((doc, index) => {
+                if (doc.file instanceof File) {
+                    formData.append(`${key}[${index}].File`, doc.file);
+                }
+                if (doc.documento_id) {
+                    formData.append(`${key}[${index}].DocumentoId`, doc.documento_id);
+                }
+                formData.append(`${key}[${index}].TipoDocumentoId`, doc.tipo_documento_id);
+                formData.append(`${key}[${index}].Observaciones`, doc.observaciones || '');
+                formData.append(`${key}[${index}].AmbitoDocumento`, doc.ambito_documento || '');
+                formData.append(`${key}[${index}].NombreArchivo`, doc.nombre_archivo || '');
+                formData.append(`${key}[${index}].RutaFisica`, doc.ruta_fisica || '');
+            });
+        }
+
+        // 7. Métodos auxiliares
+        nullIfEmpty(value) {
+            return (value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) ? null : value;
+        }
+
+        parseIntOrNull(value) {
+            const parsed = parseInt(value);
+            return isNaN(parsed) ? null : parsed;
+        }
+
+        parseDecimal(value) {
+            if (value === null || value === undefined) return 0;
+            const cleanedValue = String(value).replace(/\./g, '').replace(/,/g, '.');
+            const parsed = parseFloat(cleanedValue);
+            return isNaN(parsed) ? 0 : parsed;
+        }
+
+        formatDecimalInput(inputElement) {
+            const rawValue = parseDecimal(inputElement.value);
+            inputElement.value = rawValue.toLocaleString('es-EC', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        // 8. Comunicación con el servidor
+        async sendData(formData, esGuardadoParcial) {
+            return $.ajax({
+                url: this.crearCasoApiUrl,
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val(),
+                    'X-Auto-Save': esGuardadoParcial.toString()
+                }
+            });
+        }
+
+        saveDataSync() {
+            if (navigator.sendBeacon) {
+                try {
+                    const formData = this.buildFormData(true);
+                    const url = this.crearCasoApiUrl + '?sync=true';
+                    navigator.sendBeacon(url, formData);
+                } catch (error) {
+                    console.error('Error en guardado sincrónico:', error);
+                }
+            }
+        }
+
+        // 9. Manejo de resultados
+        handleSaveSuccess(response, esGuardadoParcial, showLoading) {
+            this.isDirty = false;
+            this.lastSaveTime = new Date();
+
+            if (response.casoId) this.casoId = response.casoId;
+            if (response.aseguradoId) this.aseguradoId = response.aseguradoId;
+            if (response.vehiculoId) this.vehiculoId = response.vehiculoId;
+
+            if (showLoading) {
+                if (esGuardadoParcial) {
+                    this.showSaveSuccess('Guardado automáticamente');
+                } else {
+                    Swal.fire('✅ Éxito', response.mensaje || 'Caso guardado correctamente', 'success').then(() => {
+                        if (response.redirectToUrl) {
+                            window.location.href = response.redirectToUrl;
+                        }
+                    });
+                }
+            }
+        }
+
+        handleSaveError(error, esGuardadoParcial, showLoading) {
+            console.error('Error al guardar:', error);
+
+            if (showLoading) {
+                if (esGuardadoParcial) {
+                    this.showSaveError('Error en guardado automático');
+                } else {
+                    this.processValidationErrors(error);
+                    Swal.fire('❌ Error', this.getErrorMessage(error), 'error');
+                }
+            }
+        }
+
+        getErrorMessage(error) {
+            if (error.responseJSON?.errors) {
+                return Object.values(error.responseJSON.errors)
+                    .flat()
+                    .join('<br>');
+            }
+            return error.responseJSON?.detalle ||
+                error.responseJSON?.error ||
+                error.responseText ||
+                'Error inesperado al guardar';
+        }
+
+        processValidationErrors(error) {
+            $('.is-invalid').removeClass('is-invalid');
+            $('.invalid-feedback').remove();
+
+            if (error.responseJSON?.errors) {
+                Object.entries(error.responseJSON.errors).forEach(([field, messages]) => {
+                    const $input = $(`[name="${field}"], #${field}`);
+                    if ($input.length) {
+                        $input.addClass('is-invalid');
+                        $input.after(`<div class="invalid-feedback">${messages.join('<br>')}</div>`);
+                    }
+                });
+            }
+        }
+
+        // 10. UI Feedback
+        showSaveIndicator() {
+            let $indicator = $('#save-indicator');
+            if ($indicator.length === 0) {
+                $indicator = $(`
+                <div id="save-indicator" class="position-fixed" style="top: 20px; right: 20px; z-index: 9999;">
+                    <div class="alert alert-info alert-dismissible fade show" role="alert">
+                        <div class="d-flex align-items-center">
+                            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                            <span>Guardando...</span>
+                        </div>
+                    </div>
+                </div>
+            `);
+                $('body').append($indicator);
+            }
+            $indicator.show();
+        }
+
+        showSaveSuccess(message) {
+            const $indicator = $('#save-indicator');
+            if ($indicator.length) {
+                $indicator.html(`
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <div class="d-flex align-items-center">
+                        <i class="ri-check-line me-2"></i>
+                        <span>${message}</span>
+                    </div>
+                </div>
+            `);
+            }
+        }
+
+        showSaveError(message) {
+            const $indicator = $('#save-indicator');
+            if ($indicator.length) {
+                $indicator.html(`
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <div class="d-flex align-items-center">
+                        <i class="ri-error-warning-line me-2"></i>
+                        <span>${message}</span>
+                    </div>
+                </div>
+            `);
+            }
+        }
+
+        hideSaveIndicator() {
+            $('#save-indicator').fadeOut();
+        }
+
+        // 11. Debug (solo desarrollo)
+        debugFormData(formData) {
+            console.log("Auto-guardado - Tab:", this.currentTab);
+            console.log("FormData entries:");
+
+            const fileSummary = [];
+
+            for (let pair of formData.entries()) {
+                if (pair[1] instanceof File) {
+                    console.log(pair[0] + ': File (' + pair[1].name + ', ' + pair[1].size + ' bytes)');
+                    fileSummary.push(`📎 ${pair[0]} → ${pair[1].name} (${pair[1].size} bytes)`);
+                } else {
+                    console.log(pair[0] + ': ' + pair[1]);
+                }
+            }
+
+            console.warn(`\n=== 📁 Archivos adjuntados (${fileSummary.length}) ===`);
+            if (fileSummary.length > 0) {
+                fileSummary.forEach(msg => console.warn(msg));
+            } else {
+                console.warn('❌ No se está enviando ningún archivo en este guardado.');
+            }
+        }
+    }
+
+    // Inicialización cuando el DOM esté listo
+    $(document).ready(() => {
+        window.casoFinancieroManager = new CasoFinancieroManager();
+    });
+});

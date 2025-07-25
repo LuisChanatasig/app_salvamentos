@@ -1,0 +1,382 @@
+﻿@model app_salvamentos.Models.ModificarCasoViewModel
+@using app_salvamentos.Helper
+@{
+    ViewData["Title"] = "Modificar Caso";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-12">
+        <div class="card card-height-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-folder-plus text-primary fs-4"></i>
+                    <div>
+                        <h4 class="card-title mb-1">Editar Caso</h4>
+                        <small class="text-muted">Los campos <span class="text-danger">*</span> son obligatorios</small>
+                    </div>
+                </div>
+              
+            </div>
+
+
+            <div class="card-body">
+                @* Importante: enctype="multipart/form-data" es crucial para el envío de archivos *@
+                <form id="actualizarCasoForm" method="post" class="row g-3 needs-validation" novalidate enctype="multipart/form-data">
+                    <input type="hidden" value="@Model.CasoDetalle.caso_id"  asp-for="CasoDetalle.caso_id"/>
+                    <!-- STEP 1: Datos del Asegurado y Vehículo -->
+                    <div class="step" id="step1">
+                        <h5><i class="ri-user-2-line me-2"></i>Datos del Asegurado</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="CasoDetalle.nombre_asegurado" class="form-label">Nombre del Asegurado *</label>
+                                <input asp-for="CasoDetalle.nombre_asegurado"  type="text" class="form-control" placeholder="Ej. Juan Pérez" required />
+                                <span asp-validation-for="CasoDetalle.nombre_asegurado" class="text-danger"></span>
+                                <div class="invalid-feedback">Este campo es requerido.</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                @* Este campo estaba oculto, ahora es visible según tu controlador *@
+                                <label asp-for="CasoDetalle.identificacion" class="form-label">Identificación (Cédula/RUC) *</label>
+                                <input asp-for="CasoDetalle.identificacion" type="text" class="form-control" placeholder="Ej. 1712345678" />
+                                <span asp-validation-for="CasoDetalle.identificacion" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                @* Este campo estaba oculto, ahora es visible *@
+                                <label asp-for="CasoDetalle.telefono" class="form-label">Teléfono</label>
+                                <input asp-for="CasoDetalle.telefono" type="tel" class="form-control" placeholder="Ej. 0991234567" />
+                                <span asp-validation-for="CasoDetalle.telefono" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                @* Este campo estaba oculto, ahora es visible *@
+                                <label asp-for="CasoDetalle.email" class="form-label">Email</label>
+                                <input asp-for="CasoDetalle.email" type="email" class="form-control" placeholder="Ej. correo@ejemplo.com" />
+                                <span asp-validation-for="CasoDetalle.email" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-12 mb-3">
+                                @* Este campo estaba oculto, ahora es visible *@
+                                <label asp-for="CasoDetalle.direccion" class="form-label">Dirección</label>
+                                <input asp-for="CasoDetalle.direccion" type="text" class="form-control" placeholder="Ej. Av. Principal 123, Ciudad" />
+                                <span asp-validation-for="CasoDetalle.direccion" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <h5 class="mt-4"><i class="ri-car-line me-2"></i>Datos del Vehículo</h5>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="CasoDetalle.placa" class="form-label">Placa *</label>
+                                <input asp-for="CasoDetalle.placa"  type="text" class="form-control" placeholder="Ej. ABC-1234" required />
+                                <span asp-validation-for="CasoDetalle.placa" class="text-danger"></span>
+                                <div class="invalid-feedback">Este campo es requerido.</div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                @* Este campo estaba oculto, ahora es visible *@
+                                <label asp-for="CasoDetalle.marca" class="form-label">Marca</label>
+                                <input asp-for="CasoDetalle.marca" type="text" class="form-control" placeholder="Ej. Toyota" />
+                                <span asp-validation-for="CasoDetalle.marca" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                @* Este campo estaba oculto, ahora es visible *@
+                                <label asp-for="CasoDetalle.modelo" class="form-label">Modelo</label>
+                                <input asp-for="CasoDetalle.modelo" type="text" class="form-control" placeholder="Ej. Corolla" />
+                                <span asp-validation-for="CasoDetalle.modelo" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="CasoDetalle.anio" class="form-label">Año *</label>
+                                <input asp-for="CasoDetalle.anio" type="number" class="form-control" placeholder="Ej. 2020" required />
+                                <span asp-validation-for="CasoDetalle.anio" class="text-danger"></span>
+                                <div class="invalid-feedback">Este campo es requerido.</div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                @* Este campo estaba oculto, ahora es visible *@
+                                <label asp-for="CasoDetalle.transmision" class="form-label">Transmisión</label>
+                                <input asp-for="CasoDetalle.transmision" type="text" class="form-control" placeholder="Ej. Manual/Automática" />
+                                <span asp-validation-for="CasoDetalle.transmision" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                @* Este campo estaba oculto, ahora es visible *@
+                                <label asp-for="CasoDetalle.combustible" class="form-label">Combustible</label>
+                                <input asp-for="CasoDetalle.combustible" type="text" class="form-control" placeholder="Ej. Gasolina/Diésel" />
+                                <span asp-validation-for="CasoDetalle.combustible" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                @* Este campo estaba oculto, ahora es visible *@
+                                <label asp-for="CasoDetalle.cilindraje" class="form-label">Cilindraje</label>
+                                <input asp-for="CasoDetalle.cilindraje" type="text" class="form-control" placeholder="Ej. 1800cc" />
+                                <span asp-validation-for="CasoDetalle.cilindraje" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                @* Este campo estaba oculto, ahora es visible *@
+                                <label asp-for="CasoDetalle.numero_chasis" class="form-label">Número de Chasis</label>
+                                <input asp-for="CasoDetalle.numero_chasis" type="text" class="form-control" placeholder="Ej. VIN1234567890" />
+                                <span asp-validation-for="CasoDetalle.numero_chasis" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                @* Este campo estaba oculto, ahora es visible *@
+                                <label asp-for="CasoDetalle.numero_motor" class="form-label">Número de Motor</label>
+                                <input asp-for="CasoDetalle.numero_motor" type="text" class="form-control" placeholder="Ej. MOT1234567890" />
+                                <span asp-validation-for="CasoDetalle.numero_motor" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="CasoDetalle.tipo_vehiculo" class="form-label">Tipo de Vehículo *</label>
+                                <input asp-for="CasoDetalle.tipo_vehiculo" type="text" class="form-control" placeholder="Ej. Sedan/SUV" required />
+                                <span asp-validation-for="CasoDetalle.tipo_vehiculo" class="text-danger"></span>
+                                <div class="invalid-feedback">Este campo es requerido.</div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="CasoDetalle.clase" class="form-label">Clase *</label>
+                                <input asp-for="CasoDetalle.clase" type="text" class="form-control" placeholder="Ej. Particular/Comercial" required />
+                                <span asp-validation-for="CasoDetalle.clase" class="text-danger"></span>
+                                <div class="invalid-feedback">Este campo es requerido.</div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="CasoDetalle.color" class="form-label">Color *</label>
+                                <input asp-for="CasoDetalle.color" type="text" class="form-control" placeholder="Ej. Rojo/Blanco" required />
+                                <span asp-validation-for="CasoDetalle.color" class="text-danger"></span>
+                                <div class="invalid-feedback">Este campo es requerido.</div>
+                            </div>
+                            <div class="col-md-12 mb-3">
+                                <label asp-for="CasoDetalle.observaciones_vehiculo" class="form-label">Observaciones del Vehículo</label>
+                                <textarea asp-for="CasoDetalle.observaciones_vehiculo" class="form-control" rows="3" placeholder="Observaciones adicionales del vehículo"></textarea>
+                                <span asp-validation-for="CasoDetalle.observaciones_vehiculo" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <h5 class="mt-4"><i class="ri-file-text-line me-2"></i>Datos del Caso</h5>
+                        <div class="row">
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="CasoDetalle.numero_reclamo" class="form-label">Número de Reclamo *</label>
+                                <input asp-for="CasoDetalle.numero_reclamo" type="text" class="form-control" placeholder="Ej. REC-2024-001" required />
+                                <span asp-validation-for="CasoDetalle.numero_reclamo" class="text-danger"></span>
+                                <div class="invalid-feedback">Este campo es requerido.</div>
+
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                @* Este campo estaba oculto, ahora es visible *@
+                                <label asp-for="CasoDetalle.fecha_siniestro" class="form-label">Fecha del Siniestro *</label>
+                                <input asp-for="CasoDetalle.fecha_siniestro" type="date" class="form-control" required />
+                                <span asp-validation-for="CasoDetalle.fecha_siniestro" class="text-danger"></span>
+                                <div class="invalid-feedback">Este campo es requerido.</div>
+                            </div>
+                            @* Descomentado el select de CasoEstadoId *@
+                            <div class="col-md-6 mb-3" hidden>
+                                <label asp-for="CasoDetalle.caso_estado_id" class="form-label">Estado del Caso *</label>
+                                <select asp-for="CasoDetalle.caso_estado_id" class="form-select" data-choices data-choices-search-false required>
+                                    @foreach (var tipo in Model.EstadosCaso)
+                                    {
+                                        <option value="@tipo.Value">@tipo.Text</option>
+                                    }
+                                </select>
+                                <span asp-validation-for="CasoDetalle.caso_estado_id" class="text-danger"></span>
+                                <div class="invalid-feedback">Este campo es requerido.</div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end mt-3">
+                            <button type="button" class="btn btn-primary" id="btnNextStep">Siguiente<i class="ri-arrow-right-line align-bottom ms-1"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 2: Carga de documentos múltiples -->
+                    <div class="step d-none" id="step2">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5 class="mb-0">
+                                <i class="ri-file-upload-line me-2"></i>Carga de Documentos
+                            </h5>
+                            <span class="form-text text-muted ms-3">
+                                ⚠️ Se sugiere que el nombre del archivo no exceda
+                                <strong>40 caracteres</strong>.
+                            </span>
+                        </div>
+
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label for="documentoTipo" class="form-label">Tipo de Documento</label>
+                          
+                                <select id="documentoTipo" class="form-select">
+                                    @* Añadido 'required' para este select *@
+
+                                    <option value="">Seleccione un tipo</option>
+                                    <optgroup label="Documentos del Asegurado">
+                                        @foreach (var tipo in Model.TiposDocumentoAsegurado)
+                                        {
+                                            <option value="@tipo.Value" data-ambito="ASEGURADO">@tipo.Text</option>
+                                        }
+                                    </optgroup>
+                                    <optgroup label="Documentos del Caso">
+                                        @foreach (var tipo in Model.TiposDocumentoCaso)
+                                        {
+                                            <option value="@tipo.Value" data-ambito="CASO">@tipo.Text</option>
+                                        }
+                                    </optgroup>
+                                </select>
+                                <div class="invalid-feedback">Debe seleccionar un tipo de documento.</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="archivosDocumento" class="form-label">Seleccionar Archivos</label>
+                                <input type="file" id="archivosDocumento" class="form-control" multiple accept=".jpg,.jpeg,.png,.pdf" /> @* Añadido 'required' *@
+                                <div class="invalid-feedback">Debe seleccionar al menos un archivo.</div>
+                            </div>
+
+                            <div class="col-md-12">
+                                <label for="observacionesDocumento" class="form-label">Observaciones del Documento (opcional)</label>
+                                <textarea id="observacionesDocumento" class="form-control" rows="2"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="mb-3 text-end">
+                            <button type="button" class="btn btn-outline-primary" id="btnAgregarArchivos">
+                                <i class="ri-add-line align-middle me-1"></i> Agregar Documento(s)
+                            </button>
+                        </div>
+
+                        <h6>📂 Documentos cargados:</h6>
+                        <div class="row" id="listaDocumentos">
+                            @if (Model.AllDocuments != null && Model.AllDocuments.Any())
+                            {
+                                foreach (var doc in Model.AllDocuments)
+                                {
+                                    string fileMime = DocumentDisplayHelper.GetMimeTypeFromFileName(doc.nombre_archivo);
+                                    string iconClass = DocumentDisplayHelper.GetIconClass(fileMime);
+                                    string colorClass = DocumentDisplayHelper.GetColorClass(fileMime);
+
+                                    var ambitos = new Dictionary<string, List<SelectListItem>>
+                            {
+                            { "CASO", Model.TiposDocumentoCaso },
+                            { "ASEGURADO", Model.TiposDocumentoAsegurado }
+                            };
+
+                                    ambitos.TryGetValue(doc.ambito_documento ?? "", out var listaTipos);
+
+                                    string tipoDocumentoText = listaTipos?
+                                    .FirstOrDefault(t => t.Value == doc.tipo_documento_id.ToString())?.Text
+                                    ?? "Tipo Desconocido";
+
+                                    <div class="col-md-4 col-sm-6 mb-3 fade-in-up"
+                                         data-doc-id="@doc.documento_id"
+                                         data-preview-url="@doc.RutaPublica"
+                                         data-ambito="@doc.ambito_documento">
+                                        <div class="card border card-animate">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="flex-shrink-0 me-3">
+                                                        <i class="@iconClass fs-2 @colorClass"></i>
+                                                    </div>
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="mb-1 text-truncate">@doc.nombre_archivo</h6>
+                                                        <small class="text-muted">@tipoDocumentoText (@doc.ambito_documento)</small>
+                                                    </div>
+                                                    <div class="flex-shrink-0">
+                                                        <button type="button"
+                                                                class="btn btn-sm btn-light p-0 remove-doc-btn"
+                                                                data-bs-toggle="tooltip"
+                                                                data-bs-placement="top"
+                                                                title="Eliminar"
+                                                                data-doc-id="@doc.documento_id">
+                                                            <i class="ri-delete-bin-line text-danger"></i>
+                                                        </button>
+
+                                                        @if (!string.IsNullOrEmpty(doc.RutaPublica))
+                                                        {
+                                                       @if (!string.IsNullOrEmpty(doc.RutaPublica))
+{
+    <button type="button"
+            class="btn btn-sm btn-light p-0 preview-doc-btn ms-1" 
+            data-bs-toggle="tooltip"
+            data-bs-placement="top"
+            title="Previsualizar" 
+            data-doc-id="@doc.documento_id" 
+            data-ruta-fisica="@doc.ruta_fisica" 
+            data-ambito="@doc.ambito_documento"> 
+        <i class="ri-eye-line text-info"></i> 
+    </button>
+}
+
+                                                        }
+
+                                                    </div>
+                                                </div>
+
+                                                @if (!string.IsNullOrEmpty(doc.observaciones))
+                                                {
+                                                    <p class="text-muted mt-2 mb-0 text-wrap">
+                                                        <small>Obs: @doc.observaciones</small>
+                                                    </p>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        </div>
+
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="button" class="btn btn-secondary" id="btnBack"><i class="ri-arrow-left-line align-bottom me-1"></i>Volver</button>
+                            <button type="submit" class="btn btn-success"><i class="ri-check-line align-bottom me-1"></i>Finalizar Creación</button>
+                        </div>
+                    </div>
+
+                    @* Campo oculto para el UsuarioId (se llenará en JS) *@
+
+                </form>
+            </div>
+        </div>
+        <!-- Modal de previsualización -->
+        <div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="previewLabel">Previsualización</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body text-center" id="previewContent">
+                        <!-- Aquí se cargará la previsualización -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // var crearCasoApiUrl = '@Url.Action("CrearCaso", "Casos")'; // Asegúrate de que la URL sea correcta
+                var actualizarCasoApiUrl = '@Url.Action("ModificarCaso", "Casos")'; // Asegúrate de que la URL sea correcta
+                var  API_DOCUMENTOS_BASE_URL = '@Url.Action("BorrarDocumento", "Casos")'; // Asegúrate de que la URL sea correcta
+                var  API_CONTROLLER_BASE_URL_PREVIEW = '@Url.Action("ObtenerArchivo", "Casos")'; // Asegúrate de que la URL sea correcta
+
+    </script>
+    <script>
+        // Inyectar mensajes de TempData en JavaScript
+        var errorMessage = '@Html.Raw(TempData["ErrorMessage"])';
+        var successMessage = '@Html.Raw(TempData["SuccessMessage"])';
+
+        // Este script es solo para mostrar los SweetAlerts inyectados por TempData
+        $(document).ready(function () {
+            if (errorMessage) {
+                Swal.fire({
+                    icon: 'error',
+                    title: '¡Error!',
+                    text: errorMessage,
+                    confirmButtonText: 'Aceptar'
+                });
+            } else if (successMessage) {
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Éxito!',
+                    text: successMessage,
+                    confirmButtonText: 'Ok'
+                });
+            }
+        });
+    </script>
+
+    <script src="~/js/crear-caso.js"></script> <!--  script personalizado -->
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

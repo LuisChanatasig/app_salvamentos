@@ -47,8 +47,8 @@
                                 {
                                     <tr>
                                         <td>@caso.caso_id</td>
-                                        <td>@caso.fecha_siniestro.ToString("yyyy-MM-dd")</td> 
-                                        <td>@caso.nombre_asegurado</td> 
+                                        <td>@caso.fecha_siniestro.ToString("yyyy-MM-dd")</td>
+                                        <td>@caso.nombre_asegurado</td>
                                         <td>@caso.placa</td>
                                         <td>@caso.marca</td>
                                         <td>@caso.modelo</td>
@@ -60,22 +60,66 @@
                                                     case "CREADO":
                                                         badgeClass = "bg-warning";
                                                         break;
-                                                    case "EN ANÁLISIS":
+                                                    case "ANALIZADO":
                                                         badgeClass = "bg-info";
                                                         break;
                                                     case "FINALIZADO":
                                                         badgeClass = "bg-success";
                                                         break;
-                                                    // Añade más casos si tienes otros estados
+                                                        // Añade más casos si tienes otros estados
                                                 }
                                             }
                                             <span class="badge @badgeClass">@caso.estado_caso.ToUpper()</span>
                                         </td>
-                                        <td>
-                                            <a href="@Url.Action("AnálisisCaso", "Analisis", new { id = caso.caso_id })" class="btn btn-sm btn-soft-primary">
-                                                <i class="ri-eye-line"></i> Ver
-                                            </a>
-                                        </td>
+                                        @if (caso.estado_caso.ToUpper() == "CREADO")
+                                        {
+                                            <td>
+                                                <div class="dropdown">
+                                                    <button class="btn btn-sm btn-soft-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                        <i class="ri-more-2-line"></i> Opciones
+                                                    </button>
+                                                    <ul class="dropdown-menu">
+                                                        <li>
+                                                            <a class="dropdown-item" href="@Url.Action("ModificarCasos", "Casos", new { id = caso.caso_id })">
+                                                                <i class="ri-pencil-line me-1"></i> Editar
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a class="dropdown-item" href="@Url.Action("AnálisisCaso", "Analisis", new { id = caso.caso_id })">
+                                                                <i class="ri-eye-line me-1"></i> Empezar análisis
+                                                            </a>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                            </td>
+                                        }
+                                        else
+                                        {
+
+                                            <td>
+
+                                                <div class="dropdown">
+
+                                                    <button class="btn btn-sm btn-soft-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" disabled>
+                                                        <i class="ri-more-2-line"></i> Sin Acciones
+                                                    </button>
+                                                    <ul class="dropdown-menu">
+
+                                                        <li>
+                                                            <a class="dropdown-item" href="@Url.Action("ModificarCasos", "Casos", new { id = caso.caso_id })">
+                                                                <i class="ri-pencil-line me-1"></i> Editar
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a class="dropdown-item" href="@Url.Action("AnálisisCaso", "Analisis", new { id = caso.caso_id })">
+                                                                <i class="ri-eye-line me-1"></i> Empezar análisis
+                                                            </a>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                            </td>
+
+                                        }
                                     </tr>
                                 }
                             }
@@ -92,7 +136,6 @@
         </div><!-- end card -->
     </div><!-- end col -->
 </div><!-- end row -->
-
 @section scripts {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"
             integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
@@ -132,10 +175,32 @@
                 createdRow: function (row, data) {
                     // data[6] es el valor de la columna 'Estado' en el array de datos de la fila
                     if (data[6].includes('CREADO')) $(row).addClass('table-warning');
-                    else if (data[6].includes('ANÁLISIS')) $(row).addClass('table-info');
+                    else if (data[6].includes('ANALIZADO')) $(row).addClass('table-info');
                     else if (data[6].includes('FINALIZADO')) $(row).addClass('table-success');
                 }
             });
         });
+    </script>
+    <script>
+         // Script para mostrar SweetAlert (si se usa TempData desde el controlador)
+        var errorMessage = '@Html.Raw(TempData["ErrorMessage"])';
+        var successMessage = '@Html.Raw(TempData["SuccessMessage"])';
+
+        if (errorMessage) {
+            Swal.fire({
+                icon: 'error',
+                title: '¡Error!',
+                text: errorMessage,
+                confirmButtonText: 'Aceptar'
+            });
+        } else if (successMessage) {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Éxito!',
+                text: successMessage,
+                confirmButtonText: 'Ok'
+            });
+        }
+
     </script>
 }

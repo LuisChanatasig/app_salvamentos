@@ -1,7 +1,10 @@
 ﻿namespace app_salvamentos.Models
 {
-    public class CrearCasoDto
-    {    // Asegurado
+    public class ModificarCasoDto
+    {// Id del caso
+        public int? CasoId { get; set; } // Permitir nulo para la creación de un nuevo caso
+
+        // Asegurado
         public string NombreCompleto { get; set; } = null!;
         public string? Identificacion { get; set; }
         public string? Telefono { get; set; }

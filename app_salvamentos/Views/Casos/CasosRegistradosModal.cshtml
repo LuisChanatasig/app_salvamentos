@@ -36,7 +36,7 @@
                                     case "CREADO":
                                         badgeClass = "bg-warning";
                                         break;
-                                    case "EN ANÁLISIS":
+                                    case "ANALIZADO":
                                         badgeClass = "bg-info";
                                         break;
                                     case "FINALIZADO":
@@ -101,7 +101,7 @@
             createdRow: function (row, data) {
                 // data[6] es el valor de la columna 'Estado' en el array de datos de la fila
                 if (data[6].includes('CREADO')) $(row).addClass('table-warning');
-                else if (data[6].includes('ANÁLISIS')) $(row).addClass('table-info');
+                else if (data[6].includes('ANALIZADO')) $(row).addClass('table-info');
                 else if (data[6].includes('FINALIZADO')) $(row).addClass('table-success');
             }
         });

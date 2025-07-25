@@ -2,14 +2,12 @@
 
 namespace app_salvamentos.Models
 {
-    /// <summary>
-    /// ViewModel para la vista de Análisis de Caso.
-    /// Contiene los detalles del caso y la lista de tipos de documento.
-    /// </summary>
-    public class AnalisisCasoViewModel
+    public class ModificarCasoViewModel
     {
         public CasoDetalleDto CasoDetalle { get; set; }
         // This new property combines them for easy iteration in the view
+        public List<DocumentoFormInput> NewDocuments { get; set; } = new List<DocumentoFormInput>();
+
         public List<DocumentoDetalleDto> AllDocuments
         {
             get
@@ -35,7 +33,7 @@ namespace app_salvamentos.Models
                 return allDocs;
             }
         }
-
+        public List<SelectListItem> EstadosCaso { get; set; } = new List<SelectListItem>();
         public List<SelectListItem> TiposDocumentoCaso { get; set; } = new List<SelectListItem>();
         public List<SelectListItem> TiposDocumentoAsegurado { get; set; } = new List<SelectListItem>();
     }

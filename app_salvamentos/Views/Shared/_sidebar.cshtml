@@ -78,13 +78,21 @@
 
                     <!-- Análisis -->
                     <li class="nav-item">
-                        <a href="#" class="nav-link menu-link" data-bs-toggle="modal" data-bs-target="#modalCasos">
-                            <i class="bx bx-search icon-dual"></i>
+                          <a class="nav-link menu-link" href="#sidebarAnalisis" data-bs-toggle="collapse" aria-expanded="false">
+                            <i class="bx bx-folder icon-dual"></i>
                             <span>Análisis</span>
                         </a>
 
+                        <div class="collapse menu-dropdown" id="sidebarAnalisis">
+                            <ul class="nav nav-sm flex-column">
+                                <li class="nav-item">
+                                    <a asp-controller="Analisis" asp-action="CasosAnalizados" class="nav-link">Casos Analizados</a>
+                                </li>
+                                
+                            </ul>
+                        </div>
                     </li>
-
+@* 
                     <!-- Revisión -->
                     <li class="nav-item">
                         <a class="nav-link menu-link" href="#sidebarRevision" data-bs-toggle="collapse" aria-expanded="false">
@@ -130,7 +138,7 @@
                             <i class="bx bx-user icon-dual"></i>
                             <span>Proveedores</span>
                         </a>
-                    </li>
+                    </li> *@
                 }
 
                 @* — Revisor Autopiezas (Perfil 3) — *@

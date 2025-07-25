@@ -59,7 +59,7 @@ namespace app_salvamentos.Controllers
         /// Muestra el formulario para crear un nuevo usuario, incluyendo la lista de perfiles.
         /// </summary>
         /// <returns>La vista con el modelo necesario para la creación de usuario.</returns>
-        [HttpGet("crear")] // Ruta para la acción GET que muestra el formulario
+        [HttpGet] // Ruta para la acción GET que muestra el formulario
         public async Task<IActionResult> CrearUsuario()
         {
             try
@@ -109,19 +109,29 @@ namespace app_salvamentos.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)] // Documenta errores de validación
         [ProducesResponseType(StatusCodes.Status409Conflict)] // Documenta errores de conflicto
         [ProducesResponseType(StatusCodes.Status500InternalServerError)] // Documenta errores internos
-        public async Task<IActionResult> CrearUsuarioM([FromForm] CrearUsuarioViewModel viewModel) // <-- Recibe el ViewModel del formulario
+        public async Task<IActionResult> CrearUsuario([FromForm] CrearUsuarioViewModel viewModel) // <-- Recibe el ViewModel del formulario
         {
             // La validación del modelo con [ApiController] es a menudo automática,
             // pero mantener el if (!ModelState.IsValid) explícito es claro.
             if (!ModelState.IsValid)
             {
                 _logger.LogWarning("Validación fallida para la creación de usuario.");
-                TempData["ErrorMessage"] = "Por favor, corrija los errores de validación.";
+
+                var errorMessages = new List<string>();
+                foreach (var modelStateEntry in ModelState.Values)
+                {
+                    foreach (var error in modelStateEntry.Errors)
+                    {
+                        errorMessages.Add(error.ErrorMessage);
+                    }
+                }
+                TempData["ValidationErrors"] = errorMessages;
+                TempData["ErrorMessage"] = "Por favor, corrija los errores de validación."; // General message
+
                 // Recargar los perfiles para que el dropdown no esté vacío al redirigir
                 await CargarPerfilesEnViewModel(viewModel);
-                return View(viewModel); // Retorna la misma vista con los errores de validación
+                return View(viewModel); // Or RedirectToAction if you're going to a different action
             }
-
             try
             {
                 // 1. Generar el salt y hashear la contraseña

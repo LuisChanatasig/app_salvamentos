@@ -36,7 +36,7 @@
             <div class="col-xl-3 col-md-6">
                 <div class="card card-animate">
                     <div class="card-body">
-                        <a href="@Url.Action("Index","Caso")" class="d-flex align-items-center">
+                        <a href="@Url.Action("CrearCasos","Casos")" class="d-flex align-items-center">
                             <div class="avatar-sm me-3">
                                 <span class="avatar-title rounded-circle bg-soft-primary text-secondary">
                                     <i class="ri-folder-2-line fs-24"></i>
@@ -44,7 +44,7 @@
                             </div>
                             <div>
                                 <p class="text-muted mb-1">Casos</p>
-                                <h5 class="mb-0">Ver detalle</h5>
+                                <h5 class="mb-0">Crear Nuevo Caso</h5>
                             </div>
                         </a>
                     </div>
@@ -54,7 +54,7 @@
             <div class="col-xl-3 col-md-6">
                 <div class="card card-animate">
                     <div class="card-body">
-                        <a href="@Url.Action("InfoVehiculo","Analisis")" class="d-flex align-items-center">
+                        <a href="#" class="d-flex align-items-center" data-bs-toggle="modal" data-bs-target="#modalCasos">
                             <div class="avatar-sm me-3">
                                 <span class="avatar-title rounded-circle bg-soft-success text-success">
                                     <i class="ri-search-eye-line fs-24"></i>
@@ -68,7 +68,7 @@
                     </div>
                 </div>
             </div>
-            <!-- Revisión -->
+        @*     <!-- Revisión -->
             <div class="col-xl-3 col-md-6">
                 <div class="card card-animate">
                     <div class="card-body">
@@ -121,7 +121,23 @@
                         </a>
                     </div>
                 </div>
-            </div>
+            </div> *@
         </div>
     </div> <!-- container-fluid -->
 </div> <!-- page-content -->
+@section Scripts {
+    <script>
+        const modal = document.getElementById('modalCasos');
+        modal.addEventListener('show.bs.modal', function () {
+            fetch('@Url.Action("CasosRegistradosModal", "Casos")')
+                .then(response => response.text())
+                .then(html => {
+                    document.getElementById('contenidoCasosModal').innerHTML = html;
+                })
+                .catch(error => {
+                    document.getElementById('contenidoCasosModal').innerHTML =
+                      '<div class="alert alert-danger">Error al cargar los casos.</div>';
+                });
+        });
+    </script>
+}

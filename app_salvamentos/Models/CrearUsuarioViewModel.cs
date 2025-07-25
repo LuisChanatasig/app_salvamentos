@@ -15,7 +15,6 @@ namespace app_salvamentos.Models
         public string UsuarioLogin { get; set; }
 
         [Required(ErrorMessage = "El correo electrónico es obligatorio.")]
-        [EmailAddress(ErrorMessage = "Formato de correo electrónico inválido.")]
         [StringLength(255, ErrorMessage = "El correo electrónico no puede exceder los 255 caracteres.")]
         [Display(Name = "Correo Electrónico")]
         public string UsuarioEmail { get; set; }

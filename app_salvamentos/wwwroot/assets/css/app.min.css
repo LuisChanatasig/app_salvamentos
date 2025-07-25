@@ -18366,4 +18366,20 @@ span.flatpickr-weekday {
     background-color: #88898e;
     border: 1px solid black;
 }
-    
+/*Animacinoes*/
+.fade-in-up {
+    animation: fadeInUp 0.5s ease-out forwards;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+

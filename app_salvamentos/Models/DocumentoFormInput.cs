@@ -12,5 +12,8 @@ namespace app_salvamentos.Models
         public IFormFile? File { get; set; }
 
         public string? Observaciones { get; set; }
+
+        public string? AmbitoDocumento { get; set; } // <--- ¡Añadir esta propiedad aquí!
+
     }
 }

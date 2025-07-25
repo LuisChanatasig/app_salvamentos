@@ -74,6 +74,7 @@ CREATE TABLE Asegurados (
     CONSTRAINT FK_Asegurados_UpdatedBy FOREIGN KEY (updated_by) REFERENCES Usuarios(usuario_id)
 );
 
+
 -- Tabla para almacenar la información de los Vehículos
 CREATE TABLE Vehiculos (
     vehiculo_id INT IDENTITY(1,1) PRIMARY KEY,
@@ -180,27 +181,31 @@ CREATE TABLE Documentos (
 );
 
 -- Tipo de tabla para documentos asociados a un Asegurado
+-- IMPORTANTE: Si este tipo de tabla ya está en uso por un SP o función,
+-- necesitarás eliminar esos objetos primero antes de poder modificar el tipo.
 IF TYPE_ID('dbo.DocumentoAseguradoTableType') IS NOT NULL
     DROP TYPE dbo.DocumentoAseguradoTableType;
 GO
 
 CREATE TYPE dbo.DocumentoAseguradoTableType AS TABLE (
-    tipo_documento_id INT NOT NULL,
-    nombre_archivo NVARCHAR(255) NOT NULL,
-    contenido_binario VARBINARY(MAX) NOT NULL, -- Cambiado para guardar el contenido binario del archivo
+    tipo_documento_id INT  NULL,
+    nombre_archivo NVARCHAR(255) NULL,
+    ruta_fisica NVARCHAR(MAX) NULL, -- CAMBIO: Ahora almacena la ruta física
     observaciones NVARCHAR(MAX) NULL
 );
 GO
 
 -- Tipo de tabla para documentos asociados a un Caso
+-- IMPORTANTE: Si este tipo de tabla ya está en uso por un SP o función,
+-- necesitarás eliminar esos objetos primero antes de poder modificar el tipo.
 IF TYPE_ID('dbo.DocumentoCasoTableType') IS NOT NULL
     DROP TYPE dbo.DocumentoCasoTableType;
 GO
 
 CREATE TYPE dbo.DocumentoCasoTableType AS TABLE (
-    tipo_documento_id INT NOT NULL,
-    nombre_archivo NVARCHAR(255) NOT NULL,
-    contenido_binario VARBINARY(MAX) NOT NULL, -- Cambiado para guardar el contenido binario del archivo
+    tipo_documento_id INT  NULL,
+    nombre_archivo NVARCHAR(255)  NULL,
+    ruta_fisica NVARCHAR(MAX)  NULL, -- CAMBIO: Ahora almacena la ruta física
     observaciones NVARCHAR(MAX) NULL
 );
 GO

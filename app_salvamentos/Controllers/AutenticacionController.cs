@@ -15,7 +15,7 @@ namespace app_salvamentos.Controllers
             _authService = authService;
         }
 
-        [HttpGet]            // Ya no lleva plantilla
+        [HttpGet]   // Ya no lleva plantilla
         public IActionResult InicioSesion()
         {
             return View();

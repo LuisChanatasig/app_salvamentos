@@ -13,7 +13,6 @@
     <!-- Velzon & Bootstrap CSS -->
     <link href="~/assets/css/bootstrap.min.css" rel="stylesheet" />
     <link href="~/assets/css/icons.min.css" rel="stylesheet" />
-    <link href="~/assets/css/app.min.css" rel="stylesheet" />
     <link href="~/assets/css/custom.min.css" rel="stylesheet" />
     <link href="~/assets/css/login.css" rel="stylesheet" />
 
@@ -21,7 +20,13 @@
 </head>
 <body>
     <!-- Loading Overlay -->
-    <div id="loadingOverlay"><i class="ri-settings-5-fill gear"></i></div>
+    <div id="loadingOverlay">
+        <div class="text-center">
+            <i class="ri-settings-5-fill gear d-block mb-3"></i>
+            <div class="loading-text">Verificando credenciales...</div>
+        </div>
+    </div>
+
 
     <div class="auth-one-bg min-vh-100 d-flex align-items-center">
         <div class="container">
@@ -82,17 +87,7 @@
                                         </div>
                                     </div>
 
-                                    <div class="row mb-4 align-items-center">
-                                        <div class="col-6">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="rememberMe" />
-                                                <label class="form-check-label" for="rememberMe">Recuérdame</label>
-                                            </div>
-                                        </div>
-                                        <div class="col-6 text-end">
-                                            <a href="#" class="link-primary">¿Olvidaste tu contraseña?</a>
-                                        </div>
-                                    </div>
+                              
 
                                     <div class="d-grid">
                                         <button type="submit" class="btn btn-primary btn-lg waves-effect waves-light">
@@ -101,7 +96,7 @@
                                     </div>
 
                                     <div class="mt-5 text-center">
-                                        <p class="text-muted mb-0">&copy; @DateTime.Now.Year Autopiezas. Todos los derechos reservados.</p>
+                                        <p class="text-muted mb-0">&copy; @DateTime.Now.Year IF2BPO. Todos los derechos reservados.</p>
                                     </div>
                                 </form>
                             </div>
@@ -116,7 +111,7 @@
     <div id="toastContainer"></div>
 
     <script src="~/assets/libs/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <script src="~/assets/js/app.min.js"></script>
+
     <script>
         (() => {
             'use strict';
@@ -181,23 +176,30 @@
 
                 const email = document.getElementById('Email').value;
                 const password = document.getElementById('Password').value;
-                try {
-                    const response = await fetch('@Url.Action("Login", "Autenticacion")', {
-                        method: 'POST',
-                        headers: { 'Content-Type':'application/json' },
-                        body: JSON.stringify({ Email: email, Password: password })
-                    });
-                    const data = await response.json();
-                    if (response.ok) {
-                        window.location.href = '/Home/Index';
-                    } else {
-                        showToast(data.message || 'Error de autenticación','warning');
-                    }
-                } catch {
-                    showToast('Error de red','danger');
-                } finally {
-                    document.getElementById('loadingOverlay').style.display = 'none';
+                let redirigir = false;
+                       try {
+            const response = await fetch('@Url.Action("Login", "Autenticacion")', {
+                method: 'POST',
+                headers: { 'Content-Type':'application/json' },
+                body: JSON.stringify({ Email: email, Password: password })
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                redirigir = true;
+            } else {
+                showToast(data.message || 'Error de autenticación','warning');
+            }
+        } catch {
+            showToast('Error de red','danger');
+        } finally {
+            setTimeout(() => {
+                document.getElementById('loadingOverlay').style.display = 'none';
+                if (redirigir) {
+        window.location.href = '@Url.Action("Index", "Home")';
                 }
+            }, 500); // da tiempo a que se vea el giro
+        }
             });
         });
     </script>

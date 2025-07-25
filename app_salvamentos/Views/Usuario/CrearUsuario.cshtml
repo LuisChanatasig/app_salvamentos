@@ -17,7 +17,7 @@
 
                 <div class="card-body">
                     @* Utiliza asp-action para enlazar con la acción POST del controlador *@
-                    <form asp-action="CrearUsuarioM" asp-controller="Usuario" method="post" class="row g-3 needs-validation" novalidate>
+                    <form asp-action="CrearUsuario" asp-controller="Usuario" method="post" class="row g-3 needs-validation" novalidate>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label asp-for="PerfilId" class="form-label">
@@ -89,6 +89,21 @@
     </div><!-- end row -->
 </div><!-- end container-fluid -->
 @section Scripts {
+    <script>
+        @if (TempData["ValidationErrors"] is List<string> validationErrors && validationErrors.Any())
+        {
+                <div class="alert alert-danger" role="alert">
+                    <p>@TempData["ErrorMessage"]</p>
+                    <ul>
+                    @foreach (var error in validationErrors)
+                    {
+                                <li>@error</li>
+                    }
+                    </ul>
+                </div>
+        }
+    
+    </script>
     <script>
         $(document).ready(function () {
             // Script para mostrar SweetAlert

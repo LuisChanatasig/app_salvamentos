@@ -12,6 +12,7 @@
 		<PackageReference Include="ClosedXML.Report" Version="0.2.12" />
 		<PackageReference Include="Dapper" Version="2.1.66" />
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="8.0.17" />
+		<PackageReference Include="Microsoft.Data.SqlClient" Version="6.0.2" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.6" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.5">
 			<PrivateAssets>all</PrivateAssets>
@@ -46,6 +47,8 @@
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 			<CopyToPublishDirectory>Always</CopyToPublishDirectory>
 		</Content>
+		<Folder Include="wwwroot\Temp\" />
+		<Folder Include="wwwroot\uploads\" />
 	</ItemGroup>
 
 </Project>

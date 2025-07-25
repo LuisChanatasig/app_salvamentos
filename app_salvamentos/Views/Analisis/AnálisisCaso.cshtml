@@ -1,35 +1,26 @@
 ﻿@model app_salvamentos.Models.AnalisisCasoViewModel
+@using app_salvamentos.Helper
+@using Newtonsoft.Json
 @{
     ViewBag.Title = "Análisis del Caso";
-    ViewBag.pTitle = "Análisis";
-    ViewBag.pageTitle = "Análisis del Caso";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    // Obtén la instancia de HttpContext de la vista
+    var ctx = ViewContext.HttpContext;
+    var usuarioId = UsuarioSesionHelper.UsuarioId(ctx);
+    var perfilId = UsuarioSesionHelper.RolId(ctx);
+    var usuarioLogin = UsuarioSesionHelper.UsuarioLogin(ctx);
+    var perfilNombre = UsuarioSesionHelper.PerfilNombre(ctx);
+    var nombres = UsuarioSesionHelper.Nombres(ctx);
+    var fechaLimitePago = string.IsNullOrEmpty(Model.CasoDetalle.Resumen?.FechaLimitePagoSriFormatted)
+      ? DateTime.Today.ToString("yyyy-MM-dd")
+      : Model.CasoDetalle.Resumen.FechaLimitePagoSriFormatted;
 }
-
-@section styles {
-@* Asegúrate de que tus archivos CSS de Velzon/Bootstrap estén correctamente enlazados en tu _Layout.cshtml.
-           Si usas SweetAlert2, asegúrate de que su CSS también esté enlazado. *@
-}
-
-<div class="row">
-    <div class="col-12">
-        <div class="page-title-box d-sm-flex align-items-center justify-content-between">
-            <h4 class="mb-sm-0">Análisis del Caso</h4>
-            <div class="page-title-right">
-                <ol class="breadcrumb m-0">
-                    <li class="breadcrumb-item"><a href="@Url.Action("CasosRegistrados", "Casos")">Casos</a></li>
-                    <li class="breadcrumb-item active">Análisis</li>
-                </ol>
-            </div>
-        </div>
-    </div>
-</div>
 
 <div class="row">
     <div class="col-12">
         <div class="card">
             <div class="card-header">
-                <h4 class="card-title mb-0">🔍 Análisis del Caso - ID @Model.CasoDetalle.caso_id</h4>
+                <h4 class="card-title mb-0">🔍 Análisis del Caso - ID @Model.CasoDetalle.numero_reclamo</h4>
             </div>
 
             <div class="card-body">
@@ -48,395 +39,656 @@
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 }
+                <form id="crearAnalisisForm" method="post" class="row g-3 needs-validation" novalidate enctype="multipart/form-data">
 
-                <!-- Tabs Navigation -->
-                <ul class="nav nav-tabs nav-tabs-custom nav-success mb-3" role="tablist" id="tabsChecklist">
-                    <li class="nav-item">
-                        <a class="nav-link active" data-bs-toggle="tab" href="#resumen" role="tab" id="tabResumen">
-                            <i class="ri-file-info-line align-middle me-1"></i> Resumen del Caso <span class="badge bg-light text-muted ms-1" id="statusResumen">⏳</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" data-bs-toggle="tab" href="#documentos" role="tab" id="tabDocumentos">
-                            <i class="ri-folder-line align-middle me-1"></i> Documentos <span class="badge bg-light text-muted ms-1" id="statusDocumentos">⏳</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" data-bs-toggle="tab" href="#valores" role="tab" id="tabValores">
-                            <i class="ri-money-dollar-circle-line align-middle me-1"></i> Valores Comerciales <span class="badge bg-light text-muted ms-1" id="statusValores">⏳</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" data-bs-toggle="tab" href="#danos" role="tab" id="tabDanos">
-                            <i class="ri-tools-line align-middle me-1"></i> Daños <span class="badge bg-light text-muted ms-1" id="statusDanos">⏳</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" data-bs-toggle="tab" href="#partes" role="tab" id="tabPartes">
-                            <i class="ri-car-wrench-line align-middle me-1"></i> Partes <span class="badge bg-light text-muted ms-1" id="statusPartes">⏳</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" data-bs-toggle="tab" href="#resumenfinal" role="tab" id="tabFinal">
-                            <i class="ri-clipboard-line align-middle me-1"></i> Final <span class="badge bg-light text-muted ms-1" id="statusFinal">⏳</span>
-                        </a>
-                    </li>
-                </ul>
+                    <input type="hidden" name="CasoId" value="@Model.CasoDetalle.caso_id"/>
+                    <input type="hidden" name="AseguradoId" value="@Model.CasoDetalle.asegurado_id"/>
+                    <input type="hidden" name="VehiculoId" value="@Model.CasoDetalle.vehiculo_id"/>
+                    <input type="hidden" name="NumeroReclamo" value="@Model.CasoDetalle.numero_reclamo"/>
+                    <input type="hidden" name="UsuarioId" value="@usuarioId" />
+         
 
-                <!-- Tabs Content -->
-                <div class="tab-content text-muted">
-                    <!-- Tab 1: Resumen del caso -->
-                    <div class="tab-pane fade show active" id="resumen" role="tabpanel">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Nombre del Asegurado</label>
-                                <input type="text" class="form-control" value="@Model.CasoDetalle.nombre_asegurado"  />
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Fecha del Siniestro</label>
-                                <input type="date" class="form-control" value="@Model.CasoDetalle.fecha_siniestro.ToString("yyyy-MM-dd")"  />
+                    <!-- Tabs Navigation -->
+                    <ul class="nav nav-tabs nav-tabs-custom nav-success mb-3" role="tablist" id="tabsChecklist">
+                        <li class="nav-item">
+                            <a class="nav-link active" data-bs-toggle="tab" href="#resumen" role="tab" id="tabResumen">
+                                <i class="ri-file-info-line align-middle me-1"></i> Resumen del Caso <span class="badge bg-light text-muted ms-1" id="statusResumen">⏳</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#documentos" role="tab" id="tabDocumentos">
+                                <i class="ri-folder-line align-middle me-1"></i> Documentos <span class="badge bg-light text-muted ms-1" id="statusDocumentos">⏳</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#valores" role="tab" id="tabValores">
+                                <i class="ri-money-dollar-circle-line align-middle me-1"></i> Valores Comerciales <span class="badge bg-light text-muted ms-1" id="statusValores">⏳</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#danos" role="tab" id="tabDanos">
+                                <i class="ri-tools-line align-middle me-1"></i> Daños <span class="badge bg-light text-muted ms-1" id="statusDanos">⏳</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#partes" role="tab" id="tabPartes">
+                                <i class="ri-car-wrench-line align-middle me-1"></i> Partes <span class="badge bg-light text-muted ms-1" id="statusPartes">⏳</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#resumenfinal" role="tab" id="tabFinal">
+                                <i class="ri-clipboard-line align-middle me-1"></i> Final <span class="badge bg-light text-muted ms-1" id="statusFinal">⏳</span>
+                            </a>
+                        </li>
+                    </ul>
+
+                    <!-- Tabs Content -->
+                    <div class="tab-content text-muted">
+                        <!-- Tab 1: Resumen del caso -->
+                        <div class="tab-pane fade show active" id="resumen" role="tabpanel">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Nombre del Asegurado</label>
+                                    <input type="text" class="form-control" id="nombreCompleto" name="NombreCompleto" value="@Model.CasoDetalle.nombre_asegurado" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Fecha del Siniestro</label>
+                                    <input type="date" class="form-control" id="fechaSiniestro" name="FechaSiniestro"
+                                           value="@(Model.CasoDetalle.fecha_siniestro.HasValue ? Model.CasoDetalle.fecha_siniestro.Value.ToString("yyyy-MM-dd") : string.Empty)" />
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label">Marca</label>
+                                    <input type="text" id="vehiculoMarca" class="form-control" value="@Model.CasoDetalle.marca" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Modelo</label>
+                                    <input type="text" id="vehiculoModelo" class="form-control" value="@Model.CasoDetalle.modelo" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Año</label>
+                                    <input type="number" id="vehiculoAnio" class="form-control"
+                                           value="@(Model.CasoDetalle.anio.HasValue ? Model.CasoDetalle.anio.ToString() : "")" />
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Placa</label>
+                                    <input type="text" id="vehiculoPlaca" class="form-control" value="@Model.CasoDetalle.placa" />
+                                </div>
+
+                                <div class="col-md-6" >
+                                    <label class="form-label">Número de Reclamo</label>
+                                    <input type="text" id="numeroReclamo" nam class="form-control" value="@Model.CasoDetalle.numero_reclamo" readonly />
+                                </div>
                             </div>
 
-                            <div class="col-md-4">
-                                <label class="form-label">Marca</label>
-                                <input type="text" class="form-control" value="@Model.CasoDetalle.marca"  />
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Modelo</label>
-                                <input type="text" class="form-control" value="@Model.CasoDetalle.modelo"  />
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Año</label>
-                                <input type="number" class="form-control" value="@(Model.CasoDetalle.anio.HasValue ? Model.CasoDetalle.anio.ToString() : "N/A")"  />
+                            <hr class="my-4" />
+
+                            <h5 class="mb-3">🛠️ Información técnica adicional</h5>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Tipo de Vehículo</label>
+                                    <input type="text" id="tipoVehiculo" class="form-control" value="@Model.CasoDetalle.tipo_vehiculo" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Transmisión</label>
+                                    <input type="text" id="vehiculoTransmision" class="form-control" value="@Model.CasoDetalle.transmision" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Combustible</label>
+                                    <input type="text" id="vehiculoCombustible" class="form-control" value="@Model.CasoDetalle.combustible" />
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Color</label>
+                                    <input type="text" id="vehiculoColor" class="form-control" value="@Model.CasoDetalle.color" />
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">¿Mantiene Gravamen?</label>
+                                    <select class="form-select" id="vehiculoGravamen" asp-for="CasoDetalle.gravamen">
+                                        <option value="">Seleccione</option>
+                                        <option value="SI">Sí</option>
+                                        <option value="NO">No</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Placas Metálicas</label>
+                                    <select class="form-select" id="vehiculoPlacasMetalicas" asp-for="CasoDetalle.placas_metalicas">
+                                        <option value="">Seleccione</option>
+                                        <option value="SI">Sí</option>
+                                        <option value="NO">No</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">¿Se encuentra el radio en el vehículo?</label>
+                                    <select class="form-select" id="vehiculoRadio" asp-for="CasoDetalle.radio_vehiculo">
+                                        <option value="">Seleccione</option>
+                                        <option value="SI">Sí</option>
+                                        <option value="NO">No</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Cilindraje</label>
+                                    <input type="text" id="vehiculoCilindraje" class="form-control" value="@Model.CasoDetalle.cilindraje" />
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Número de Motor</label>
+                                    <input type="text" id="vehiculoNumeroMotor" class="form-control" value="@Model.CasoDetalle.numero_motor" />
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Número de Chasis</label>
+                                    <input type="text" id="vehiculoNumeroChasis" class="form-control" value="@Model.CasoDetalle.numero_chasis" />
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Estado del Vehículo</label>
+                                    <input type="text" class="form-control" id="vehiculoEstado" placeholder="Ej. Nuevo, Usado, Reparado" value="@Model.CasoDetalle.estado_vehiculo" />
+                                </div>
+
+                                <div class="col-12">
+                                    <label class="form-label">Observaciones del vehículo</label>
+                                    <textarea class="form-control" rows="3" id="vehiculoObservaciones">@Model.CasoDetalle.observaciones_vehiculo</textarea>
+                                </div>
                             </div>
 
-                            <div class="col-md-6">
-                                <label class="form-label">Placa</label>
-                                <input type="text" class="form-control" value="@Model.CasoDetalle.placa"  />
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label">Número de Reclamo</label>
-                                <input type="text" class="form-control" value="@Model.CasoDetalle.numero_reclamo"  />
+                            <div class="d-flex justify-content-end mt-4">
+                                <button type="button" class="btn btn-secondary me-2" disabled>Anterior</button>
+                                <button type="button" class="btn btn-primary btn-next-tab" data-target="#documentos">Siguiente</button>
                             </div>
                         </div>
 
-                        <hr class="my-4" />
-
-                        <h5 class="mb-3">🛠️ Información técnica adicional</h5>
-                        <div class="row g-3">
-                            <div class="col-md-4">
-                                <label class="form-label">Tipo de Vehículo</label>
-                                <input type="text" class="form-control" value="@Model.CasoDetalle.tipo_vehiculo"  />
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Transmisión</label>
-                                <input type="text" class="form-control" value="@Model.CasoDetalle.transmision"  />
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Combustible</label>
-                                <input type="text" class="form-control" value="@Model.CasoDetalle.combustible"  />
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label">Color</label>
-                                <input type="text" class="form-control" value="@Model.CasoDetalle.color"  />
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label">¿Mantiene Gravamen?</label>
-                                <select class="form-select" id="mantieneGravamen">
-                                    <option value="">Seleccione</option>
-                                    <option value="SI">Sí</option>
-                                    <option value="NO">No</option>
-                                </select>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label">Placas Metálicas</label>
-                                <select class="form-select" id="placasMetalicas">
-                                    <option value="">Seleccione</option>
-                                    <option value="SI">Sí</option>
-                                    <option value="NO">No</option>
-                                </select>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label">¿Se encuentra el radio en el vehículo?</label>
-                                <select class="form-select" id="radioEnVehiculo">
-                                    <option value="">Seleccione</option>
-                                    <option value="SI">Sí</option>
-                                    <option value="NO">No</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Cilindraje</label>
-                                <input type="text" class="form-control" value="@Model.CasoDetalle.cilindraje"  />
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label">Número de Motor</label>
-                                <input type="text" class="form-control" value="@Model.CasoDetalle.numero_motor"  />
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Número de Chasis</label>
-                                <input type="text" class="form-control" value="@Model.CasoDetalle.numero_chasis"  />
-                            </div>
-
-                            <div class="col-12">
-                                <label class="form-label">Observaciones del vehículo</label>
-                                <textarea class="form-control" rows="3" >@Model.CasoDetalle.observaciones_vehiculo</textarea>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Tab 2: Documentos -->
-                    <div class="tab-pane fade" id="documentos" role="tabpanel">
-                        <div class="row g-3">
-                            <div class="col-md-4">
-                                <label class="form-label">Categoría del Documento</label>
-                                <select class="form-select" id="categoriaDocumento" required>
-                                    <option value="">Seleccione</option>
-                                    @if (Model.TiposDocumentoCaso != null)
-                                    {
-                                        foreach (var tipo in Model.TiposDocumentoCaso)
-                                        {
-                                            // Filtra "Fotos Siniestro" del dropdown de documentos
-                                            if (tipo.Text != "Fotos Siniestro")
+                        <!-- Tab 2: Documentos -->
+                        <div class="tab-pane fade" id="documentos" role="tabpanel">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Categoría del Documento</label>
+                                    <select class="form-select" id="categoriaDocumento">
+                                        <optgroup label="Documentos del Asegurado">
+                                            @foreach (var tipo in Model.TiposDocumentoAsegurado)
                                             {
-                                                <option value="@tipo.Value">@tipo.Text</option>
+                                                <option value="@tipo.Value" data-ambito="ASEGURADO">@tipo.Text</option>
                                             }
+                                        </optgroup>
+                                        <optgroup label="Documentos del Caso">
+                                            @foreach (var tipo in Model.TiposDocumentoCaso)
+                                            {
+                                                if (tipo.Text != "Fotos del Siniestro")
+                                                {
+                                                    <option value="@tipo.Value" data-ambito="CASO">@tipo.Text</option>
+                                                }
+                                            }
+                                        </optgroup>
+                                    </select>
+                                    <div class="invalid-feedback">Por favor, seleccione una categoría.</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Seleccionar archivos</label>
+                                    <input type="file" id="archivosDocumento" class="form-control" multiple
+                                           accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx" />
+                                    <div class="invalid-feedback">Por favor, seleccione al menos un archivo.</div>
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <button type="button" class="btn btn-primary w-100" id="btnAgregarDoc">
+                                        <i class="ri-upload-cloud-line me-1"></i> Agregar
+                                    </button>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Observaciones del Documento</label>
+                                    <textarea class="form-control" id="observacionesDocumento" rows="2"
+                                              placeholder="Observaciones sobre el documento"></textarea>
+                                </div>
+                            </div>
+
+                            <hr class="my-4" />
+
+                            <h6>📂 Documentos cargados:</h6>
+                            <div class="row" id="listaDocumentos">
+                                @if (Model.AllDocuments != null && Model.AllDocuments.Any())
+                                {
+                                    // Definir variables fuera del bucle, sin @{}
+                                    var tiposCaso = Model.TiposDocumentoCaso ?? new List<SelectListItem>();
+                                    var tiposAsegurado = Model.TiposDocumentoAsegurado ?? new List<SelectListItem>();
+                                    var ambitos = new Dictionary<string, List<SelectListItem>>
+                                {
+                                { "CASO", tiposCaso },
+                                { "ASEGURADO", tiposAsegurado }
+                                };
+
+                                    foreach (var doc in Model.AllDocuments)
+                                    {
+                                        if (doc == null) continue;
+
+                                        string fileName = doc.nombre_archivo ?? "";
+                                        string fileMime = DocumentDisplayHelper.GetMimeTypeFromFileName(fileName);
+                                        string iconClass = DocumentDisplayHelper.GetIconClass(fileMime);
+                                        string colorClass = DocumentDisplayHelper.GetColorClass(fileMime);
+
+                                        string tipoDocumentoText = "Tipo Desconocido";
+
+                                        if (ambitos.TryGetValue(doc.ambito_documento ?? "", out var listaTipos) && listaTipos != null)
+                                        {
+                                            tipoDocumentoText = listaTipos
+                                            .FirstOrDefault(t => t?.Value == doc.tipo_documento_id.ToString())?.Text
+                                            ?? "Tipo Desconocido";
                                         }
+                                        <div class="col-md-4 col-sm-6 mb-3 fade-in-up" data-doc-id="@doc.documento_id" data-preview-url="@doc.RutaPublica">
+                                            <div class="card border card-animate">
+                                                <div class="card-body">
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="flex-shrink-0 me-3">
+                                                            <i class="@iconClass fs-2 @colorClass"></i>
+                                                        </div>
+                                                        <div class="flex-grow-1">
+                                                            <h6 class="mb-1 text-truncate">@fileName</h6>
+                                                            <small class="text-muted">@tipoDocumentoText (@doc.ambito_documento)</small>
+                                                        </div>
+                                                        <div class="flex-shrink-0">
+                                                            <button type="button" class="btn btn-sm btn-light p-0 remove-doc-btn" data-bs-toggle="tooltip" data-bs-placement="top" title="Eliminar" data-doc-id="@doc.documento_id">
+                                                                <i class="ri-delete-bin-line text-danger"></i>
+                                                            </button>
+                                                            @if (!string.IsNullOrEmpty(doc.ruta_fisica))
+                                                            {
+                                                                <button type="button"
+                                                                        class="btn btn-sm btn-light p-0 preview-doc-btn ms-1"
+                                                                        data-bs-toggle="tooltip"
+                                                                        data-bs-placement="top"
+                                                                        title="Previsualizar"
+                                                                        data-preview-url="@doc.ruta_fisica">
+                                                                    <i class="ri-eye-line text-info"></i>
+                                                                </button>
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                    @if (!string.IsNullOrEmpty(doc.observaciones))
+                                                    {
+                                                        <p class="text-muted mt-2 mb-0 text-wrap"><small>Obs: @doc.observaciones</small></p>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
                                     }
-                                </select>
-                                <div class="invalid-feedback">Por favor, seleccione una categoría.</div>
+                                }
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Seleccionar archivos</label>
-                                <input type="file" id="archivosDocumento" class="form-control" multiple accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx" required />
-                                <div class="invalid-feedback">Por favor, seleccione al menos un archivo.</div>
-                            </div>
-                            <div class="col-md-2 d-flex align-items-end">
-                                <button type="button" class="btn btn-primary w-100" id="btnAgregarDoc">
-                                    <i class="ri-upload-cloud-line me-1"></i> Agregar
+
+                            <div class="d-flex justify-content-between mt-4">
+                                <button type="button" class="btn btn-secondary btn-prev-tab">
+                                    <i class="ri-arrow-left-line align-bottom me-1"></i> Anterior
+                                </button>
+
+                                <button type="button" class="btn btn-primary btn-next-tab">
+                                    Siguiente <i class="ri-arrow-right-line align-bottom ms-1"></i>
                                 </button>
                             </div>
-                            <div class="col-12">
-                                <label class="form-label">Observaciones del Documento</label>
-                                <textarea class="form-control" id="observacionesDocumento" rows="2" placeholder="Observaciones sobre el documento"></textarea>
-                            </div>
+
                         </div>
 
-                        <hr class="my-4" />
+                        <!-- Tab 3: Valores Comerciales -->
+                        <div class="tab-pane fade" id="valores" role="tabpanel">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">
+                                        Pago Matrícula SRI hasta
+                                    </label>
+                                    <input type="date" class="form-control" id="fechalimitepago" value="@fechaLimitePago" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">
+                                        Número de multas
+                                    </label>
+                                    <!-- ID único para el número de multas -->
+                                    <input type="number" class="form-control" id="num_multas" min="0" value="@Model.CasoDetalle.Resumen.NumeroMultas" />
+                                </div>
 
-                        <h6>📂 Documentos cargados:</h6>
-                        <div class="row" id="listaDocumentos">
-                            <!-- Aquí se agregarán los documentos visualmente -->
+                                <!-- Contenedor para los campos de valor de multa individuales -->
+                                <div class="col-12" id="individual_multas_container">
+                                    <!-- Aquí se generarán dinámicamente los campos para cada multa -->
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Valor asegurado</label>
+                                    <input type="text" min="0" class="form-control" id="valorAsegurado" placeholder="Ej. 9500" value="@Model.CasoDetalle.Resumen.ValorAsegurado" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Valores pendientes por matrícula</label>
+                                    <input type="text" class="form-control" id="valorMatriculaPendiente"
+                                           min="0" value="@Model.CasoDetalle.Resumen.ValorMatriculaPendiente" />
+                                </div>
+
+                                <hr class="my-2">
+                                <h5 class="mt-4">💲 Valores Comerciales del Mercado</h5>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Patio Tuerca</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control valor-comercial-input"
+                                               id="valorPatioTuerca" placeholder="Valor"
+                                               value="@Model.CasoDetalle.ValorPatioTuerca" />
+                                        <input type="file" class="form-control file-input-valor" id="filePatioTuerca"
+                                               accept="image/*,application/pdf" />
+                                        <button type="button" class="btn btn-outline-secondary preview-valor-btn d-none"
+                                                data-file-id="filePatioTuerca" title="Previsualizar">
+                                            <i class="ri-eye-line text-info"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger remove-valor-btn d-none"
+                                                data-file-id="filePatioTuerca" title="Eliminar">
+                                            <i class="ri-delete-bin-line"></i>
+                                        </button>
+                                    </div>
+                                    <div class="text-muted mt-1 small" id="fileNamePatioTuerca"></div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">AEADE</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control valor-comercial-input" id="valorAEADE"
+                                               placeholder="Valor" value="@Model.CasoDetalle.ValorAEADE" />
+                                        <input type="file" class="form-control file-input-valor" id="fileAEADE"
+                                               accept="image/*,application/pdf" />
+                                        <button type="button" class="btn btn-outline-secondary preview-valor-btn d-none"
+                                                data-file-id="fileAEADE" title="Previsualizar">
+                                            <i class="ri-eye-line text-info"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger remove-valor-btn d-none"
+                                                data-file-id="fileAEADE" title="Eliminar">
+                                            <i class="ri-delete-bin-line"></i>
+                                        </button>
+                                    </div>
+                                    <div class="text-muted mt-1 small" id="fileNameAEADE"></div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Marketplace</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control valor-comercial-input"
+                                               id="valorMarketplace" placeholder="Valor"
+                                               value="@Model.CasoDetalle.ValorMarketplace" />
+                                        <input type="file" class="form-control file-input-valor" id="fileMarketplace"
+                                               accept="image/*,application/pdf" />
+                                        <button type="button" class="btn btn-outline-secondary preview-valor-btn d-none"
+                                                data-file-id="fileMarketplace" title="Previsualizar">
+                                            <i class="ri-eye-line text-info"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger remove-valor-btn d-none"
+                                                data-file-id="fileMarketplace" title="Eliminar">
+                                            <i class="ri-delete-bin-line"></i>
+                                        </button>
+                                    </div>
+                                    <div class="text-muted mt-1 small" id="fileNameMarketplace"></div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Hugo Vargas</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control valor-comercial-input" id="valorHugoVargas"
+                                               placeholder="Valor" value="@Model.CasoDetalle.ValorHugoVargas" />
+                                        <input type="file" class="form-control file-input-valor" id="fileHugoVargas"
+                                               accept="image/*,application/pdf" />
+                                        <button type="button" class="btn btn-outline-secondary preview-valor-btn d-none"
+                                                data-file-id="fileHugoVargas" title="Previsualizar">
+                                            <i class="ri-eye-line text-info"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger remove-valor-btn d-none"
+                                                data-file-id="fileHugoVargas" title="Eliminar">
+                                            <i class="ri-delete-bin-line"></i>
+                                        </button>
+                                    </div>
+                                    <div class="text-muted mt-1 small" id="fileNameHugoVargas"></div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Otros</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control valor-comercial-input" id="valorOtros"
+                                               placeholder="Valor" value="@Model.CasoDetalle.ValorOtros" />
+                                        <input type="file" class="form-control file-input-valor" id="fileOtros"
+                                               accept="image/*,application/pdf" />
+                                        <button type="button" class="btn btn-outline-secondary preview-valor-btn d-none"
+                                                data-file-id="fileOtros" title="Previsualizar">
+                                            <i class="ri-eye-line text-info"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger remove-valor-btn d-none"
+                                                data-file-id="fileOtros" title="Eliminar">
+                                            <i class="ri-delete-bin-line"></i>
+                                        </button>
+                                    </div>
+                                    <div class="text-muted mt-1 small" id="fileNameOtros"></div>
+                                </div>
+
+                                <!-- Nuevos campos de avalúo -->
+                                <div class="col-md-6">
+                                    <label class="form-label">Precio Comercial Sugerido</label>
+                                    <input type="number" class="form-control" id="precioComercialSugerido" placeholder="150000" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Precio Base</label>
+                                    <input type="number" class="form-control" id="precioBase" placeholder="150000" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Precio Estimado Venta Vehículo</label>
+                                    <input type="number" class="form-control" id="precioEstimadoVentaVehiculo" placeholder="Auto-calculado" readonly />
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Promedio Calculado</label>
+                                    <input type="number" class="form-control" id="promedioCalculado"
+                                           placeholder="Auto-calculado" readonly />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Promedio - Valor matrícula</label>
+                                    <input type="number" class="form-control" id="promedioNeto"
+                                           placeholder="Auto-calculado" readonly />
+                                </div>
+
+                                <!-- Campo para mostrar el total de multas -->
+                                <div class="col-md-6">
+                                    <label class="form-label">Total de Multas</label>
+                                    <input type="number" class="form-control" id="total_multas_display"
+                                           placeholder="Auto-calculado" readonly  value="@Model.CasoDetalle.Resumen.ValorMultasTotal"/>
+                                </div>
+
+                                <hr class="my-2">
+                                <h5 class="mt-4">📝 Detalles del Avalúo</h5>
+
+
+                                <div class="col-md-6" hidden>
+                                    <label class="form-label">Número de avaluo</label>
+                                    <input type="text" class="form-control" id="numeroAvaluo"value="@Model.CasoDetalle.numero_avaluo" />
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Avalúo realizado mediante</label>
+                                    <input type="text" class="form-control" name="MetodoAvaluo" id="avaluoRealizadoMediante" value="@Model.CasoDetalle.metodo_avaluo" placeholder="Ej. Peritaje, Estimación" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Dirección (del avalúo)</label>
+                                    <input type="text" class="form-control" name="DireccionAvaluo" id="direccionAvaluo" placeholder="Ej. Calle Principal 123" value="@Model.CasoDetalle.direccion_avaluo" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Solicitud Avalúo</label>
+                                    <input type="date" class="form-control" id="fechaSolicitudAvaluo"
+                                           value="@(@Model.CasoDetalle.fecha_solicitud_avaluo?.ToString("yyyy-MM-dd") ?? DateTime.Now.ToString("yyyy-MM-dd"))" />
+                                </div>
+                                <div class="col-md-6" hidden>
+                                    <label class="form-label">Elaboración Avalúo</label>
+                                    <input type="date" class="form-control" id="fechaElaboracionAvaluo"/>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Elaborado por</label>
+                                    <input type="text" class="form-control" id="elaboradoPor" placeholder="Nombre del perito/persona" value="@Model.CasoDetalle.creado_por" disabled/>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Comentarios del Avalúo</label>
+                                    <textarea class="form-control" id="comentariosAvaluo" name="ComentariosAvaluo" rows="3" placeholder="Comentarios generales sobre el avalúo" asp-for="CasoDetalle.comentarios_avaluo" ></textarea>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Nota: Avalúo válido por</label>
+                                    <textarea class="form-control" id="notaAvaluoValidoPor" name="NotasAvaluo" rows="2" placeholder="Notas sobre la validez del avalúo" asp-for="CasoDetalle.notas_avaluo"></textarea>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between mt-4">
+                                <button type="button" class="btn btn-secondary btn-prev-tab">
+                                    <i class="ri-arrow-left-line align-bottom me-1"></i> Anterior
+                                </button>
+
+                                <button type="button" class="btn btn-primary btn-next-tab">
+                                    Siguiente <i class="ri-arrow-right-line align-bottom ms-1"></i>
+                                </button>
+                            </div>
+
+                        </div>
+
+
+                        <!-- Tab 4: Daños y Observaciones  -->
+                        <div class="tab-pane fade" id="danos" role="tabpanel">
+                            <div class="mb-3">
+                                <label class="form-label">Subir fotos de daños</label>
+                                <input type="file" id="fotosDanoInput" class="form-control" multiple accept="image/*" />
+                            </div>
+
+                            <hr class="my-4" />
+
+                            <h6>
+                                📸 Fotos de daños cargadas: <span class="badge bg-light text-muted ms-1"
+                                                                  id="countDanos">0</span>
+                            </h6>
+                            <div class="row g-3" id="previewDanos">
+                                <!-- Aquí se mostrarán las imágenes cargadas con observación y eliminar -->
+                            </div>
+
+                            <div class="text-end mt-3">
+                                <button class="btn btn-success" id="btnValidarFotos">
+                                    <i class="ri-check-line me-1"></i> Validar Observaciones
+                                </button>
+                            </div>
+                            <div class="d-flex justify-content-between mt-4">
+                                <button type="button" class="btn btn-secondary btn-prev-tab">
+                                    <i class="ri-arrow-left-line align-bottom me-1"></i> Anterior
+                                </button>
+
+                                <button type="button" class="btn btn-primary btn-next-tab">
+                                    Siguiente <i class="ri-arrow-right-line align-bottom ms-1"></i>
+                                </button>
+                            </div>
+
+                        </div>
+
+                        <!-- Tab 5: Partes  -->
+                        <div class="tab-pane fade" id="partes" role="tabpanel">
+                            <div class="table-responsive">
+                                <table class="table table-bordered align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Parte</th>
+                                            <th>Valor Nuevo</th>
+                                            <th>Valor Depreciado</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tablaPartes">
+                                        <!-- Filas dinámicas -->
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="d-flex justify-content-end mb-4">
+                                <button type="button" class="btn btn-sm btn-outline-success" id="btnAgregarParte">
+                                    <i class="ri-add-line"></i> Agregar Parte
+                                </button>
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">% de Daño</label>
+                                    <input type="number" class="form-control" asp-for="CasoDetalle.Resumen.PorcentajeDano"
+                                           id="porcentajeDano" placeholder="Ej. 30" min="0" max="100"
+                                           value="@string.Format("{0:0}", Model.CasoDetalle.Resumen.PorcentajeDano)" />
+
+
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Valor Calculado de Salvamento</label>
+                                    <input type="text" class="form-control" id="valorSalvamento"  asp-for="CasoDetalle.Resumen.ValorSalvamento"/>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between mt-4">
+                                <button type="button" class="btn btn-secondary btn-prev-tab">
+                                    <i class="ri-arrow-left-line align-bottom me-1"></i> Anterior
+                                </button>
+
+                                <button type="button" class="btn btn-primary btn-next-tab">
+                                    Siguiente <i class="ri-arrow-right-line align-bottom ms-1"></i>
+                                </button>
+                            </div>
+
+                        </div>
+
+                        <!-- Tab 6: Resumen Final (mantengo el contenido original) -->
+                        <div class="tab-pane fade" id="resumenfinal" role="tabpanel">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <h5 class="mb-3">🧾 Resumen del Análisis</h5>
+                                    <ul class="list-group">
+                                        <li class="list-group-item d-flex justify-content-between">
+                                            <strong>Nombre:</strong> <span>@Model.CasoDetalle.nombre_asegurado</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between">
+                                            <strong>Placa:</strong> <span>@Model.CasoDetalle.placa</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between">
+                                            <strong>Marca / Modelo:</strong> <span>
+                                                @Model.CasoDetalle.marca
+                                                @Model.CasoDetalle.modelo (@(Model.CasoDetalle.anio.HasValue ?
+                                                Model.CasoDetalle.anio.ToString() : "N/A"))
+                                            </span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between">
+                                            <strong>Valor Asegurado:</strong> <span id="resumenValorAsegurado">$9,500</span>
+                                            @* Hardcoded, si viene de DB, usar @Model.ValorAsegurado *@
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between">
+                                            <strong>Promedio Comercial:</strong> <span id="resumenPromedioComercial">$8,800</span> @* Hardcoded *@
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between">
+                                            <strong>Valor Pendiente Matrícula:</strong> <span id="resumenValorMatricula">$120</span> @* Hardcoded *@
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between">
+                                            <strong>Promedio Neto:</strong> <span id="resumenPromedioNeto">$8,680</span> @* Hardcoded *@
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between">
+                                            <strong>% de Daño:</strong> <span id="resumenPorcentajeDano">30%</span> @* Hardcoded *@
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between">
+                                            <strong>Valor Salvamento:</strong> <span id="resumenValorSalvamento">$1,200</span> @* Hardcoded *@
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between mt-4">
+                                <button type="button" class="btn btn-secondary btn-prev-tab">
+                                    <i class="ri-arrow-left-line align-bottom me-1"></i> Anterior
+                                </button>
+
+                                <button type="button" class="btn btn-primary btn-next-tab">
+                                    Siguiente <i class="ri-arrow-right-line align-bottom ms-1"></i>
+                                </button>
+                            </div>
+
+                            <div class="text-end mt-4">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="ri-check-line align-bottom me-1"></i> Finalizar Creación
+                                </button>
+                            </div>
+
                         </div>
                     </div>
-                    <!-- Tab 3: Valores Comerciales -->
-                    <div class="tab-pane fade" id="valores" role="tabpanel">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label">
-                                    Pago Matrícula SRI hasta
-                                </label>
-                                <input type="date" class="form-control" id="fechalimitepago"  />
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Valor asegurado</label>
-                                <input type="number" class="form-control" id="valorAsegurado" placeholder="Ej. 9500" />
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Valores pendientes por matrícula</label>
-                                <input type="number" class="form-control" id="valorMatriculaPendiente" placeholder="Ej. 120" />
-                            </div>
 
-                            <hr class="my-2">
-                            <h5 class="mt-4">💲 Valores Comerciales del Mercado</h5>
-
-                            <div class="col-md-6">
-                                <label class="form-label">Patio Tuerca</label>
-                                <div class="input-group">
-                                    <input type="number" class="form-control valor-comercial-input" id="valorPatioTuerca" placeholder="Valor" />
-                                    <input type="file" class="form-control file-input-valor" id="filePatioTuerca" accept="image/*,application/pdf" />
-                                    <button type="button" class="btn btn-outline-secondary preview-valor-btn d-none" data-file-id="filePatioTuerca" title="Previsualizar">
-                                        <i class="ri-eye-line text-info"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-outline-danger remove-valor-btn d-none" data-file-id="filePatioTuerca" title="Eliminar">
-                                        <i class="ri-delete-bin-line"></i>
-                                    </button>
-                                </div>
-                                <div class="text-muted mt-1 small" id="fileNamePatioTuerca"></div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label">AEADE</label>
-                                <div class="input-group">
-                                    <input type="number" class="form-control valor-comercial-input" id="valorAEADE" placeholder="Valor" />
-                                    <input type="file" class="form-control file-input-valor" id="fileAEADE" accept="image/*,application/pdf" />
-                                    <button type="button" class="btn btn-outline-secondary preview-valor-btn d-none" data-file-id="fileAEADE" title="Previsualizar">
-                                        <i class="ri-eye-line text-info"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-outline-danger remove-valor-btn d-none" data-file-id="fileAEADE" title="Eliminar">
-                                        <i class="ri-delete-bin-line"></i>
-                                    </button>
-                                </div>
-                                <div class="text-muted mt-1 small" id="fileNameAEADE"></div>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Marketplace</label>
-                                <div class="input-group">
-                                    <input type="number" class="form-control valor-comercial-input" id="valorMarketplace" placeholder="Valor" />
-                                    <input type="file" class="form-control file-input-valor" id="fileMarketplace" accept="image/*,application/pdf" />
-                                    <button type="button" class="btn btn-outline-secondary preview-valor-btn d-none" data-file-id="fileMarketplace" title="Previsualizar">
-                                        <i class="ri-eye-line text-info"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-outline-danger remove-valor-btn d-none" data-file-id="fileMarketplace" title="Eliminar">
-                                        <i class="ri-delete-bin-line"></i>
-                                    </button>
-                                </div>
-                                <div class="text-muted mt-1 small" id="fileNameMarketplace"></div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label">Hugo Vargas</label>
-                                <div class="input-group">
-                                    <input type="number" class="form-control valor-comercial-input" id="valorHugoVargas" placeholder="Valor" />
-                                    <input type="file" class="form-control file-input-valor" id="fileHugoVargas" accept="image/*,application/pdf" />
-                                    <button type="button" class="btn btn-outline-secondary preview-valor-btn d-none" data-file-id="fileHugoVargas" title="Previsualizar">
-                                        <i class="ri-eye-line text-info"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-outline-danger remove-valor-btn d-none" data-file-id="fileHugoVargas" title="Eliminar">
-                                        <i class="ri-delete-bin-line"></i>
-                                    </button>
-                                </div>
-                                <div class="text-muted mt-1 small" id="fileNameHugoVargas"></div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label">Otros</label>
-                                <div class="input-group">
-                                    <input type="number" class="form-control valor-comercial-input" id="valorOtros" placeholder="Valor" />
-                                    <input type="file" class="form-control file-input-valor" id="fileOtros" accept="image/*,application/pdf" />
-                                    <button type="button" class="btn btn-outline-secondary preview-valor-btn d-none" data-file-id="fileOtros" title="Previsualizar">
-                                        <i class="ri-eye-line text-info"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-outline-danger remove-valor-btn d-none" data-file-id="fileOtros" title="Eliminar">
-                                        <i class="ri-delete-bin-line"></i>
-                                    </button>
-                                </div>
-                                <div class="text-muted mt-1 small" id="fileNameOtros"></div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label">Promedio Calculado</label>
-                                <input type="number" class="form-control" id="promedioCalculado" placeholder="Auto-calculado"  />
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Promedio - Valor matrícula</label>
-                                <input type="number" class="form-control" id="promedioNeto" placeholder="Auto-calculado"  />
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Tab 4: Daños y Observaciones (estilo Crear Caso) -->
-                    <div class="tab-pane fade" id="danos" role="tabpanel">
-                        <div class="mb-3">
-                            <label class="form-label">Subir fotos de daños</label>
-                            <input type="file" id="fotosDanoInput" class="form-control" multiple accept="image/*" />
-                        </div>
-
-                        <hr class="my-4" />
-
-                        <h6>📸 Fotos de daños cargadas: <span class="badge bg-light text-muted ms-1" id="countDanos">0</span></h6>
-                        <div class="row g-3" id="previewDanos">
-                            <!-- Aquí se mostrarán las imágenes cargadas con observación y eliminar -->
-                        </div>
-
-                        <div class="text-end mt-3">
-                            <button class="btn btn-success" id="btnValidarFotos">
-                                <i class="ri-check-line me-1"></i> Validar Observaciones
-                            </button>
-                        </div>
-                    </div>
-                    <div class="tab-pane fade" id="partes" role="tabpanel">
-                        <div class="table-responsive">
-                            <table class="table table-bordered align-middle">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Parte</th>
-                                        <th>Valor Nuevo</th>
-                                        <th>Valor Depreciado</th>
-                                        <th>Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tablaPartes">
-                                    <!-- Filas dinámicas -->
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div class="d-flex justify-content-end mb-4">
-                            <button type="button" class="btn btn-sm btn-outline-success" id="btnAgregarParte">
-                                <i class="ri-add-line"></i> Agregar Parte
-                            </button>
-                        </div>
-
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label">% de Daño</label>
-                                <input type="number" class="form-control" placeholder="Ej. 30" id="porcentajeDano" min="0" max="100" />
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Valor Calculado de Salvamento</label>
-                                <input type="number" class="form-control" id="valorSalvamento"  />
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Tab 6: Resumen Final (mantengo el contenido original) -->
-                    <div class="tab-pane fade" id="resumenfinal" role="tabpanel">
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <h5 class="mb-3">🧾 Resumen del Análisis</h5>
-                                <ul class="list-group">
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <strong>Nombre:</strong> <span>@Model.CasoDetalle.nombre_asegurado</span>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <strong>Placa:</strong> <span>@Model.CasoDetalle.placa</span>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <strong>Marca / Modelo:</strong> <span>@Model.CasoDetalle.marca @Model.CasoDetalle.modelo (@(Model.CasoDetalle.anio.HasValue ? Model.CasoDetalle.anio.ToString() : "N/A"))</span>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <strong>Valor Asegurado:</strong> <span id="resumenValorAsegurado">$9,500</span> @* Hardcoded, si viene de DB, usar @Model.ValorAsegurado *@
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <strong>Promedio Comercial:</strong> <span id="resumenPromedioComercial">$8,800</span> @* Hardcoded *@
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <strong>Valor Pendiente Matrícula:</strong> <span id="resumenValorMatricula">$120</span> @* Hardcoded *@
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <strong>Promedio Neto:</strong> <span id="resumenPromedioNeto">$8,680</span> @* Hardcoded *@
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <strong>% de Daño:</strong> <span id="resumenPorcentajeDano">30%</span> @* Hardcoded *@
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <strong>Valor Salvamento:</strong> <span id="resumenValorSalvamento">$1,200</span> @* Hardcoded *@
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-
-                        <div class="text-end mt-4">
-                            <button class="btn btn-success">
-                                <i class="ri-check-line me-1"></i> Finalizar Análisis
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                </form>
             </div>
         </div>
     </div>
@@ -460,686 +712,230 @@
     </div>
 </div>
 
+
+
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script> @* Asegúrate de que jQuery esté cargado *@
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script> @* Asegúrate de que Bootstrap JS esté cargado para los tooltips y modales *@
+
     <script>
+        // =====================================================================
+        // Variables Globales y Configuración de URLs de API
+        // =====================================================================
+        var crearCasoApiUrl = '@Url.Action("RegistrarDatosFinancieros", "Analisis")'; // URL para registrar datos financieros
+        var API_DOCUMENTOS_BASE_URL = '@Url.Action("BorrarDocumento", "Casos")'; // URL base para operaciones con documentos (ej. borrar)
+        var API_CASOS_BASE_URL = '@Url.Action("ObtenerArchivo", "Casos")'; // URL base para obtener archivos de casos (previsualización/descarga)
+
+
+
+    </script>
+
+    <script>
+        window.datosCaso = {
+            Partes: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.CasoDetalle.Partes ?? new List<ParteDto>()))
+        };
+    </script>
+
+    <script>
+        // =====================================================================
+        // Funciones Auxiliares Globales (MIME, Iconos, Colores)
+        // =====================================================================
+
+        // Función para obtener el tipo MIME de un archivo basándose en su extensión.
+        function getFileMimeType(extension) {
+            if (!extension) return "application/octet-stream";
+            switch (extension.toLowerCase()) {
+                case "jpg":
+                case "jpeg": return "image/jpeg";
+                case "png": return "image/png";
+                case "gif": return "image/gif";
+                case "pdf": return "application/pdf";
+                case "doc":
+                case "docx": return "application/msword";
+                case "xls":
+                case "xlsx": return "application/vnd.ms-excel";
+                // Añade más tipos si es necesario
+                default: return "application/octet-stream";
+            }
+        }
+
+        function getIconByType(mimeType) {
+            if (!mimeType) return "ri-file-line";
+            mimeType = mimeType.toLowerCase(); // Normalizar a minúsculas para comparación
+            if (mimeType.includes("pdf")) return "ri-file-pdf-line";
+            if (mimeType.includes("word") || mimeType.includes("doc")) return "ri-file-word-line";
+            if (mimeType.includes("excel") || mimeType.includes("sheet")) return "ri-file-excel-line";
+            if (mimeType.includes("zip") || mimeType.includes("compressed")) return "ri-file-zip-line";
+            if (mimeType.includes("audio")) return "ri-music-line";
+            if (mimeType.includes("video")) return "ri-movie-line";
+            if (mimeType.includes("text")) return "ri-file-text-line";
+            if (mimeType.includes("image")) return "ri-image-line";
+            return "ri-file-line";
+        }
+
+        function getColorByType(mimeType) {
+            if (!mimeType) return "text-secondary";
+            mimeType = mimeType.toLowerCase(); // Normalizar a minúsculas para comparación
+            if (mimeType.includes("pdf")) return "text-danger";
+            if (mimeType.includes("word") || mimeType.includes("doc")) return "text-primary";
+            if (mimeType.includes("excel") || mimeType.includes("sheet")) return "text-success";
+            if (mimeType.includes("zip")) return "text-warning";
+            if (mimeType.includes("audio")) return "text-info";
+            if (mimeType.includes("video")) return "text-purple";
+            if (mimeType.includes("text")) return "text-dark";
+            if (mimeType.includes("image")) return "text-info";
+            return "text-muted";
+        }
+    </script>
+
+    <script>
+        // =====================================================================
+        // Manejo de Mensajes de SweetAlert desde TempData (Errores/Éxitos)
+        // =====================================================================
+        var errorMessage = '@Html.Raw(TempData["ErrorMessage"])';
+        var successMessage = '@Html.Raw(TempData["SuccessMessage"])';
+
+        if (errorMessage) {
+            Swal.fire({
+                icon: 'error',
+                title: '¡Error!',
+                text: errorMessage,
+                confirmButtonText: 'Aceptar'
+            });
+        } else if (successMessage) {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Éxito!',
+                text: successMessage,
+                confirmButtonText: 'Ok'
+            });
+        }
+
+        @if (TempData["FormErrors"] != null)
+        {
+                <div class="alert alert-danger" role="alert">
+                @Html.Raw(TempData["FormErrors"])
+                </div>
+        }
+    </script>
+
+    <script>
+        // =====================================================================
+        // Inicialización de Documentos Cargados (window.loadedDocuments)
+        // =====================================================================
+
+        // Serializa los documentos existentes desde el modelo de la vista (C#) a JavaScript
+        // Se asume que Model.CasoDetalle tiene propiedades como DocumentosCaso, DocumentosAsegurado, etc.
+        var initialAllDocsData = @Html.Raw(JsonConvert.SerializeObject(new
+            {
+                caso = Model.CasoDetalle?.DocumentosCaso ?? new List<DocumentoDetalleDto>(),
+                asegurado = Model.CasoDetalle?.DocumentosAsegurado ?? new List<DocumentoDetalleDto>(),
+                valorComercial = Model.CasoDetalle?.DocumentosValorComercial ?? new List<DocumentoDetalleDto>(),
+                dano = Model.CasoDetalle?.DocumentosDano ?? new List<DocumentoDetalleDto>()
+            }));
+
+        // Inicializa el objeto global loadedDocuments.
+        // Se asegura que cada ámbito sea un array, incluso si está vacío.
+        window.loadedDocuments = {
+            caso: initialAllDocsData.caso || [],
+            asegurado: initialAllDocsData.asegurado || [],
+            valorComercial: initialAllDocsData.valorComercial || [],
+            dano: initialAllDocsData.dano || []
+        };
+
+        // Normaliza los datos de los documentos cargados desde la BD para su uso en el frontend.
+        // Esto es crucial para asegurar que tengan propiedades como uiIndex, tipo_mime,
+        // nombre_tipo_documento y ambito_documento con valores consistentes.
+        Object.keys(window.loadedDocuments).forEach(ambitoKey => {
+            window.loadedDocuments[ambitoKey].forEach(doc => {
+                // Genera un uiIndex único si no existe (para identificar en la UI)
+                if (typeof doc.uiIndex === 'undefined' || doc.uiIndex === null) {
+                    doc.uiIndex = crypto.randomUUID();
+                }
+
+                // Asegura el tipo MIME:
+                // 1. Usa doc.tipo_mime si ya viene de la BD.
+                // 2. Si no, calcúlalo de la extensión del archivo.
+                // 3. Si no hay nombre de archivo, usa un genérico.
+                doc.tipo_mime = doc.tipo_mime || getFileMimeType((doc.nombre_archivo || "").split(".").pop() || "");
+
+                // Asegura el nombre del tipo de documento para la UI:
+                // 1. Usa doc.nombre_tipo_documento si ya viene de la BD (es el más descriptivo).
+                // 2. Si no, usa doc.nombre_tipo (que parece ser otro campo de tu DTO).
+                // 3. Fallback a 'Desconocido'.
+                doc.nombre_tipo_documento = doc.tipo_documento_nombre || 'Desconocido';
+
+                // Asegura que el ámbito del documento esté en mayúsculas (para consistencia con tu JS)
+                // 1. Usa doc.ambito_documento si ya viene de la BD.
+                // 2. Si no, usa el ambitoKey actual (caso, asegurado, etc.) y lo convierte a mayúsculas.
+                doc.ambito_documento = (doc.ambito_documento || ambitoKey).toUpperCase();
+            });
+        });
+         //console.log("Documentos cargados y normalizados al inicio:", window.loadedDocuments); // Para depuración
+
+                 // Función para agregar documentos a loadedDocuments cuando se suben nuevos archivos
+        function addDocumentToLoadedDocuments(file, tipoDocumentoId, ambito, observaciones) {
+            const documento = {
+                file: file,
+                tipo_documento_id: tipoDocumentoId,
+                ambito_documento: ambito.toUpperCase(),
+                observaciones: observaciones || '',
+                uiIndex: crypto.randomUUID(),
+                nombre_archivo: file.name,
+                tipo_mime: getFileMimeType(file.name.split('.').pop() || ''),
+                nombre_tipo_documento: $('#categoriaDocumento option:selected').text(),
+                isNew: true // Marcar como nuevo para diferenciarlo de los existentes
+            };
+
+            const ambitoKey = ambito.toLowerCase();
+            if (window.loadedDocuments[ambitoKey]) {
+                window.loadedDocuments[ambitoKey].push(documento);
+            }
+
+            return documento;
+        }
+
+    </script>
+
+    <script>
+        // =====================================================================
+        // Lógica de Navegación entre Pestañas del Formulario
+        // (Este bloque estaba en tu .js pero se puede consolidar si es pequeño)
+        // =====================================================================
         $(document).ready(function () {
-            // Script para mostrar SweetAlert (si se usa TempData desde el controlador)
-            var errorMessage = '@Html.Raw(TempData["ErrorMessage"])';
-            var successMessage = '@Html.Raw(TempData["SuccessMessage"])';
+            const $tabs = $('#tabsChecklist a.nav-link'); // Selecciona todos los enlaces de las pestañas
 
-            if (errorMessage) {
-                Swal.fire({
-                    icon: 'error',
-                    title: '¡Error!',
-                    text: errorMessage,
-                    confirmButtonText: 'Aceptar'
-                });
-            } else if (successMessage) {
-                Swal.fire({
-                    icon: 'success',
-                    title: '¡Éxito!',
-                    text: successMessage,
-                    confirmButtonText: 'Ok'
-                });
-            }
+            function switchTab(offset) {
+                const $current = $tabs.filter('.active');
+                const currentIndex = $tabs.index($current);
+                const newIndex = currentIndex + offset;
 
-            // ====================================================================
-            // Lógica de Carga de Documentos
-            // ====================================================================
-
-            const archivosDocumentoInput = $('#archivosDocumento');
-            const categoriaDocumentoSelect = $('#categoriaDocumento');
-            const observacionesDocumentoTextarea = $('#observacionesDocumento');
-            const listaDocumentosDiv = $('#listaDocumentos');
-            const btnAgregarDoc = $('#btnAgregarDoc');
-            const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
-            const previewContent = $('#previewContent');
-
-            let loadedDocuments = {
-                caso: []
-            };
-
-            function readFileAsBase64(file) {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = () => resolve(reader.result.split(',')[1]);
-                    reader.onerror = error => reject(error);
-                    reader.readAsDataURL(file);
-                });
-            }
-
-            function getFileMimeType(extension) {
-                switch (extension) {
-                    case 'jpg':
-                    case 'jpeg': return 'image/jpeg';
-                    case 'png': return 'image/png';
-                    case 'gif': return 'image/gif';
-                    case 'pdf': return 'application/pdf';
-                    case 'doc':
-                    case 'docx': return 'application/msword';
-                    case 'xls':
-                    case 'xlsx': return 'application/vnd.ms-excel';
-                    default: return 'application/octet-stream';
+                if (newIndex >= 0 && newIndex < $tabs.length) {
+                    $tabs.eq(newIndex).tab('show');
                 }
             }
 
-            btnAgregarDoc.on('click', async function () {
-                const tipoDocumentoId = categoriaDocumentoSelect.val();
-                const tipoDocumentoText = categoriaDocumentoSelect.find('option:selected').text();
-
-                if (!tipoDocumentoId) {
-                    categoriaDocumentoSelect.addClass('is-invalid');
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Selección Requerida',
-                        text: 'Por favor, seleccione un tipo de documento de la lista.',
-                        confirmButtonText: 'Aceptar',
-                        confirmButtonColor: '#f7b84b'
-                    });
-                    return;
-                } else {
-                    categoriaDocumentoSelect.removeClass('is-invalid');
-                }
-
-                const observaciones = observacionesDocumentoTextarea.val();
-                const files = archivosDocumentoInput[0].files;
-
-                if (files.length === 0) {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Archivos Requeridos',
-                        text: 'Por favor, seleccione al menos un archivo para subir.',
-                        confirmButtonText: 'Aceptar',
-                        confirmButtonColor: '#f7b84b'
-                    });
-                    return;
-                }
-
-                const ambitoFijo = 'CASO';
-
-                for (const file of files) {
-                    const yaExiste = loadedDocuments.caso.some(
-                        doc => doc.NombreArchivo === file.name && doc.TipoDocumentoId === parseInt(tipoDocumentoId)
-                    );
-                    if (yaExiste) {
-                        Swal.fire({
-                            icon: 'info',
-                            title: 'Archivo Duplicado',
-                            text: `El archivo "${file.name}" con este tipo de documento ya ha sido añadido.`,
-                            confirmButtonText: 'Aceptar'
-                        });
-                        continue;
-                    }
-
-                    try {
-                        const contenidoBase64 = await readFileAsBase64(file);
-                        const newDoc = {
-                            TipoDocumentoId: parseInt(tipoDocumentoId),
-                            NombreArchivo: file.name,
-                            ContenidoBase64: contenidoBase64,
-                            Observaciones: observaciones,
-                            AmbitoDocumento: ambitoFijo
-                        };
-
-                        const uiIndex = loadedDocuments.caso.length;
-                        newDoc.uiIndex = uiIndex;
-
-                        loadedDocuments.caso.push(newDoc);
-
-                        const docItem = `
-                            <div class="col-md-4 col-sm-6 mb-3" data-ui-index="${uiIndex}">
-                                <div class="card border card-animate">
-                                    <div class="card-body">
-                                        <div class="d-flex align-items-center">
-                                            <div class="flex-shrink-0 me-3">
-                                                <i class="${getFileMimeType(file.type).includes('image') ? 'ri-image-line' : getIconByType(file.type)} fs-2 text-primary"></i>
-                                            </div>
-                                            <div class="flex-grow-1">
-                                                <h6 class="mb-1 text-truncate">${file.name}</h6>
-                                                <small class="text-muted">${tipoDocumentoText} (${ambitoFijo})</small>
-                                            </div>
-                                            <div class="flex-shrink-0">
-                                                <button type="button" class="btn btn-sm btn-light p-0 remove-doc-btn" data-bs-toggle="tooltip" data-bs-placement="top" title="Eliminar">
-                                                    <i class="ri-delete-bin-line text-danger"></i>
-                                                </button>
-                                                <button type="button" class="btn btn-sm btn-light p-0 preview-doc-btn ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Previsualizar">
-                                                    <i class="ri-eye-line text-info"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                        ${observaciones ? `<p class="text-muted mt-2 mb-0 text-wrap"><small>Obs: ${observaciones}</small></p>` : ''}
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                        listaDocumentosDiv.append(docItem);
-
-                        $('[data-bs-toggle="tooltip"]').tooltip('dispose').tooltip();
-
-                        Swal.fire({
-                            toast: true,
-                            position: 'top-end',
-                            icon: 'success',
-                            title: 'Archivo agregado',
-                            showConfirmButton: false,
-                            timer: 1500
-                        });
-
-                    } catch (error) {
-                        console.error("Error al leer archivo:", error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error de Archivo',
-                            text: `No se pudo leer el archivo ${file.name}.`,
-                            confirmButtonText: 'Aceptar'
-                        });
-                    }
-                }
-
-                archivosDocumentoInput.val('');
-                observacionesDocumentoTextarea.val('');
-                categoriaDocumentoSelect.val('');
+            $('.btn-next-tab').on('click', function () {
+                switchTab(1);
             });
 
-            listaDocumentosDiv.on('click', '.remove-doc-btn', function () {
-                const card = $(this).closest('.col-md-4');
-                const uiIndex = card.data('ui-index');
-
-                Swal.fire({
-                    title: '¿Estás seguro?',
-                    text: "El documento se eliminará de la lista de carga.",
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Sí, eliminarlo!',
-                    cancelButtonText: 'Cancelar'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        const realIndex = loadedDocuments.caso.findIndex(doc => doc.uiIndex === uiIndex);
-                        if (realIndex > -1) {
-                            loadedDocuments.caso.splice(realIndex, 1);
-                        }
-                        card.remove();
-                        Swal.fire('Eliminado!', 'El documento ha sido removido de la lista.', 'success');
-                    }
-                });
+            $('.btn-prev-tab').on('click', function () {
+                switchTab(-1);
             });
 
-            listaDocumentosDiv.on('click', '.preview-doc-btn', function () {
-                const card = $(this).closest('.col-md-4');
-                const uiIndex = card.data('ui-index');
-
-                const doc = loadedDocuments.caso.find(d => d.uiIndex === uiIndex);
-
-                if (!doc) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error de Previsualización',
-                        text: 'Documento no encontrado en la memoria.',
-                        confirmButtonText: 'Aceptar'
-                    });
-                    return;
-                }
-
-                previewContent.empty();
-
-                const fileExtension = doc.NombreArchivo.split('.').pop().toLowerCase();
-                const base64Data = `data:${getFileMimeType(fileExtension)};base64,${doc.ContenidoBase64}`;
-
-                if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension)) {
-                    previewContent.append(`<img src="${base64Data}" class="img-fluid" style="max-height: 80vh;" alt="${doc.NombreArchivo}">`);
-                } else if (fileExtension === 'pdf') {
-                    previewContent.append(`<iframe src="${base64Data}" width="100%" height="600px" style="border: none;"></iframe>`);
-                } else {
-                    previewContent.append(`<p class="alert alert-warning">No se puede previsualizar este tipo de archivo: <strong>.${fileExtension}</strong></p>`);
-                }
-                previewModal.show();
-            });
-
-
-            // ====================================================================
-            // Lógica para la sección de Valores Comerciales
-            // ====================================================================
-
-            const valorAseguradoInput = document.getElementById('valorAsegurado');
-            const valorMatriculaPendienteInput = document.getElementById('valorMatriculaPendiente');
-            const valorPatioTuercaInput = document.getElementById('valorPatioTuerca');
-            const valorMarketplaceInput = document.getElementById('valorMarketplace');
-            const valorHugoVargasInput = document.getElementById('valorHugoVargas');
-            const valorAEADEInput = document.getElementById('valorAEADE');
-            const valorOtrosInput = document.getElementById('valorOtros');
-            const promedioCalculadoInput = document.getElementById('promedioCalculado');
-            const promedioNetoInput = document.getElementById('promedioNeto');
-
-            let loadedValorFiles = {
-                filePatioTuerca: null,
-                fileMarketplace: null,
-                fileHugoVargas: null,
-                fileOtros: null
-            };
-
-            $('.file-input-valor').on('change', async function() {
-                const inputId = $(this).attr('id');
-                const file = this.files[0];
-                const previewBtn = $(`button[data-file-id="${inputId}"].preview-valor-btn`);
-                const removeBtn = $(`button[data-file-id="${inputId}"].remove-valor-btn`);
-                const fileNameDisplay = $(`#fileName${inputId.replace('file', '')}`);
-
-                if (file) {
-                    try {
-                        const contenidoBase64 = await readFileAsBase64(file);
-                        loadedValorFiles[inputId] = {
-                            NombreArchivo: file.name,
-                            ContenidoBase64: contenidoBase64,
-                            MimeType: file.type
-                        };
-                        fileNameDisplay.text(file.name);
-                        previewBtn.removeClass('d-none');
-                        removeBtn.removeClass('d-none');
-                        Swal.fire({
-                            toast: true,
-                            position: 'top-end',
-                            icon: 'success',
-                            title: `Archivo ${file.name} cargado`,
-                            showConfirmButton: false,
-                            timer: 1500
-                        });
-                    } catch (error) {
-                        console.error("Error al leer archivo de valor comercial:", error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error de Archivo',
-                            text: `No se pudo leer el archivo ${file.name}.`,
-                            confirmButtonText: 'Aceptar'
-                        });
-                        $(this).val('');
-                        loadedValorFiles[inputId] = null;
-                        fileNameDisplay.text('');
-                        previewBtn.addClass('d-none');
-                        removeBtn.addClass('d-none');
-                    }
-                } else {
-                    $(this).val('');
-                    loadedValorFiles[inputId] = null;
-                    fileNameDisplay.text('');
-                    previewBtn.addClass('d-none');
-                    removeBtn.addClass('d-none');
-                }
-            });
-
-            $('.preview-valor-btn').on('click', function() {
-                const fileId = $(this).data('file-id');
-                const fileData = loadedValorFiles[fileId];
-
-                if (!fileData) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error de Previsualización',
-                        text: 'Archivo no encontrado en la memoria.',
-                        confirmButtonText: 'Aceptar'
-                    });
-                    return;
-                }
-
-                previewContent.empty();
-                const base64Data = `data:${fileData.MimeType};base64,${fileData.ContenidoBase64}`;
-
-                if (fileData.MimeType.includes('image')) {
-                    previewContent.append(`<img src="${base64Data}" class="img-fluid" style="max-height: 80vh;" alt="${fileData.NombreArchivo}">`);
-                } else if (fileData.MimeType.includes('pdf')) {
-                    previewContent.append(`<iframe src="${base64Data}" width="100%" height="600px" style="border: none;"></iframe>`);
-                } else {
-                    previewContent.append(`<p class="alert alert-warning">No se puede previsualizar este tipo de archivo: <strong>${fileData.NombreArchivo.split('.').pop().toLowerCase()}</strong></p>`);
-                }
-                previewModal.show();
-            });
-
-            $('.remove-valor-btn').on('click', function() {
-                const fileId = $(this).data('file-id');
-                const fileInput = $(`#${fileId}`);
-                const previewBtn = $(`button[data-file-id="${fileId}"].preview-valor-btn`);
-                const removeBtn = $(`button[data-file-id="${fileId}"].remove-valor-btn`);
-                const fileNameDisplay = $(`#fileName${fileId.replace('file', '')}`);
-
-                Swal.fire({
-                    title: '¿Estás seguro?',
-                    text: "El archivo se eliminará de la carga.",
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Sí, eliminarlo!',
-                    cancelButtonText: 'Cancelar'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        fileInput.val('');
-                        loadedValorFiles[fileId] = null;
-                        fileNameDisplay.text('');
-                        previewBtn.addClass('d-none');
-                        removeBtn.addClass('d-none');
-                        Swal.fire('Eliminado!', 'El archivo ha sido removido.', 'success');
-                    }
-                });
-            });
-
-
-            function recalcularValoresComerciales() {
-                let sumValoresComerciales = 0;
-                let countValoresComerciales = 0;
-
-                const valoresComerciales = [
-                    parseFloat(valorPatioTuercaInput.value) || 0,
-                    parseFloat(valorMarketplaceInput.value) || 0,
-                    parseFloat(valorHugoVargasInput.value) || 0,
-                    parseFloat(valorAEADEInput.value) || 0,
-                    parseFloat(valorOtrosInput.value) || 0
-                ];
-
-                valoresComerciales.forEach(val => {
-                    if (val > 0) {
-                        sumValoresComerciales += val;
-                        countValoresComerciales++;
-                    }
-                });
-
-                let promedio = 0;
-                if (countValoresComerciales > 0) {
-                    promedio = sumValoresComerciales / countValoresComerciales;
-                }
-                promedioCalculadoInput.value = promedio.toFixed(2);
-
-                const valorMatricula = parseFloat(valorMatriculaPendienteInput.value) || 0;
-                const promedioNeto = promedio - valorMatricula;
-                promedioNetoInput.value = promedioNeto.toFixed(2);
-
-                actualizarResumenFinal();
-            }
-
-            valorMatriculaPendienteInput.addEventListener('input', recalcularValoresComerciales);
-            valorAseguradoInput.addEventListener('input', actualizarResumenFinal);
-
-            document.querySelectorAll('.valor-comercial-input').forEach(input => {
-                input.addEventListener('input', recalcularValoresComerciales);
-            });
-
-            // ====================================================================
-            // Lógica para la sección de Partes y Salvamento
-            // ====================================================================
-
-            document.getElementById('btnAgregarParte').addEventListener('click', () => {
-                const tbody = document.getElementById('tablaPartes');
-                const fila = document.createElement('tr');
-
-                fila.innerHTML = `
-                    <td><input type="text" class="form-control" placeholder="Ej. Parachoques" /></td>
-                    <td><input type="number" class="form-control valor-nuevo" placeholder="0" /></td>
-                    <td><input type="number" class="form-control valor-depreciado" placeholder="0" /></td>
-                    <td><button type="button" class="btn btn-sm btn-danger btnEliminarParte">Eliminar</button></td>
-                `;
-
-                tbody.appendChild(fila);
-            });
-
-            document.getElementById('tablaPartes').addEventListener('click', function (e) {
-                if (e.target.classList.contains('btnEliminarParte')) {
-                    e.target.closest('tr').remove();
-                    recalcularSalvamento();
-                    actualizarResumenFinal();
-                }
-            });
-
-            document.getElementById('porcentajeDano').addEventListener('input', recalcularSalvamento);
-            document.getElementById('porcentajeDano').addEventListener('input', actualizarResumenFinal);
-
-            document.getElementById('tablaPartes').addEventListener('input', function (e) {
-                if (e.target.classList.contains('valor-depreciado')) {
-                    recalcularSalvamento();
-                    actualizarResumenFinal();
-                }
-            });
-
-            function recalcularSalvamento() {
-                const porcentaje = parseFloat(document.getElementById('porcentajeDano').value) || 0;
-                let totalDepreciado = 0;
-
-                document.querySelectorAll('.valor-depreciado').forEach(input => {
-                    totalDepreciado += parseFloat(input.value) || 0;
-                });
-
-                const valorSalvamento = ((100 - porcentaje) / 100) * totalDepreciado;
-                document.getElementById('valorSalvamento').value = valorSalvamento.toFixed(2);
-            }
-
-            // ====================================================================
-            // Lógica para Fotos de Daños (Modificada)
-            // ====================================================================
-
-            const inputFotos = document.getElementById('fotosDanoInput');
-            const previewDanos = document.getElementById('previewDanos');
-            const countDanosBadge = $('#countDanos'); // Nuevo badge para el contador
-
-            let loadedDamagePhotos = []; // Array para almacenar las fotos de daños
-
-            function actualizarContadorFotos() {
-                countDanosBadge.text(loadedDamagePhotos.length);
-                Swal.fire({
-                    toast: true,
-                    position: 'top-end',
-                    icon: 'success',
-                    title: `Total: ${loadedDamagePhotos.length} imagen(es)`,
-                    showConfirmButton: false,
-                    timer: 1500
-                });
-            }
-
-            inputFotos.addEventListener('change', async function () {
-                const files = this.files;
-
-                for (let file of files) {
-                    // Verificar si el archivo ya existe
-                    const yaExiste = loadedDamagePhotos.some(
-                        photo => photo.NombreArchivo === file.name
-                    );
-                    if (yaExiste) {
-                        Swal.fire({
-                            icon: 'info',
-                            title: 'Archivo Duplicado',
-                            text: `La foto "${file.name}" ya ha sido añadida.`,
-                            confirmButtonText: 'Aceptar'
-                        });
-                        continue;
-                    }
-
-                    try {
-                        const contenidoBase64 = await readFileAsBase64(file);
-                        const newPhoto = {
-                            NombreArchivo: file.name,
-                            ContenidoBase64: contenidoBase64,
-                            MimeType: file.type,
-                            Observaciones: '' // La observación se llenará en el textarea
-                        };
-
-                        const uiIndex = loadedDamagePhotos.length;
-                        newPhoto.uiIndex = uiIndex;
-
-                        loadedDamagePhotos.push(newPhoto);
-
-                        const photoItem = `
-                            <div class="col-md-3 col-sm-6 mb-3" data-ui-index="${uiIndex}">
-                                <div class="card border card-animate">
-                                    <div class="card-body p-2 text-center">
-                                        <div class="d-flex align-items-center mb-2">
-                                            <div class="flex-shrink-0 me-2">
-                                                <i class="ri-image-line fs-3 text-primary"></i>
-                                            </div>
-                                            <div class="flex-grow-1 text-start">
-                                                <h6 class="mb-0 text-truncate">${file.name}</h6>
-                                                <small class="text-muted">Foto de Daño</small>
-                                            </div>
-                                            <div class="flex-shrink-0">
-                                                <button type="button" class="btn btn-sm btn-light p-0 remove-dano-btn" data-bs-toggle="tooltip" data-bs-placement="top" title="Eliminar">
-                                                    <i class="ri-delete-bin-line text-danger"></i>
-                                                </button>
-                                                <button type="button" class="btn btn-sm btn-light p-0 preview-dano-btn ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Previsualizar">
-                                                    <i class="ri-eye-line text-info"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <img src="data:${file.type};base64,${contenidoBase64}" class="img-thumbnail mb-2" style="height: 120px; object-fit: cover; width: 100%;" alt="${file.name}" />
-                                        <textarea class="form-control observacion-foto mt-2" rows="2" placeholder="Observación del daño" data-ui-index="${uiIndex}"></textarea>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                        previewDanos.insertAdjacentHTML('beforeend', photoItem); // Usar insertAdjacentHTML para mejor rendimiento
-
-                        $('[data-bs-toggle="tooltip"]').tooltip('dispose').tooltip(); // Reinicializar tooltips
-                        actualizarContadorFotos();
-
-                        Swal.fire({
-                            toast: true,
-                            position: 'top-end',
-                            icon: 'success',
-                            title: 'Foto de daño agregada',
-                            showConfirmButton: false,
-                            timer: 1500
-                        });
-
-                    } catch (error) {
-                        console.error("Error al leer archivo de daño:", error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error de Archivo',
-                            text: `No se pudo leer la foto ${file.name}.`,
-                            confirmButtonText: 'Aceptar'
-                        });
-                    }
-                }
-                this.value = null; // Limpiar el input de archivo
-            });
-
-            // Manejar eliminación de fotos de daños
-            previewDanos.addEventListener('click', (e) => {
-                if (e.target.closest('.remove-dano-btn')) {
-                    const card = e.target.closest('.col-md-3');
-                    const uiIndex = card.dataset.uiIndex; // Acceder directamente a dataset
-
-                    Swal.fire({
-                        title: '¿Estás seguro?',
-                        text: "La foto se eliminará de la lista de carga.",
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#3085d6',
-                        cancelButtonColor: '#d33',
-                        confirmButtonText: 'Sí, eliminarla!',
-                        cancelButtonText: 'Cancelar'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            const realIndex = loadedDamagePhotos.findIndex(photo => photo.uiIndex === parseInt(uiIndex));
-                            if (realIndex > -1) {
-                                loadedDamagePhotos.splice(realIndex, 1);
-                                // Re-indexar los elementos restantes para mantener uiIndex coherente si es necesario
-                                // (aunque para un array simple como este, no es estrictamente necesario si solo se usa para el findIndex)
-                            }
-                            card.remove();
-                            actualizarContadorFotos();
-                            Swal.fire('Eliminada!', 'La foto ha sido removida de la lista.', 'success');
-                        }
-                    });
-                }
-            });
-
-            // Manejar previsualización de fotos de daños
-            previewDanos.addEventListener('click', (e) => {
-                if (e.target.closest('.preview-dano-btn')) {
-                    const card = e.target.closest('.col-md-3');
-                    const uiIndex = card.dataset.uiIndex;
-
-                    const photo = loadedDamagePhotos.find(p => p.uiIndex === parseInt(uiIndex));
-
-                    if (!photo) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error de Previsualización',
-                            text: 'Foto no encontrada en la memoria.',
-                            confirmButtonText: 'Aceptar'
-                        });
-                        return;
-                    }
-
-                    previewContent.empty();
-                    const base64Data = `data:${photo.MimeType};base64,${photo.ContenidoBase64}`;
-
-                    if (photo.MimeType.includes('image')) {
-                        previewContent.append(`<img src="${base64Data}" class="img-fluid" style="max-height: 80vh;" alt="${photo.NombreArchivo}">`);
-                    } else if (photo.MimeType.includes('pdf')) { // Aunque el accept es image/*, por si acaso se cuela un PDF
-                        previewContent.append(`<iframe src="${base64Data}" width="100%" height="600px" style="border: none;"></iframe>`);
-                    } else {
-                        previewContent.append(`<p class="alert alert-warning">No se puede previsualizar este tipo de archivo: <strong>.${photo.NombreArchivo.split('.').pop().toLowerCase()}</strong></p>`);
-                    }
-                    previewModal.show();
-                }
-            });
-
-            // Actualizar observaciones en el array loadedDamagePhotos
-            previewDanos.addEventListener('input', (e) => {
-                if (e.target.classList.contains('observacion-foto')) {
-                    const uiIndex = e.target.dataset.uiIndex;
-                    const photo = loadedDamagePhotos.find(p => p.uiIndex === parseInt(uiIndex));
-                    if (photo) {
-                        photo.Observaciones = e.target.value;
-                    }
-                }
-            });
-
-
-            document.getElementById('btnValidarFotos').addEventListener('click', function () {
-                const observaciones = document.querySelectorAll('.observacion-foto');
-                let todasLlenas = true;
-                observaciones.forEach(obs => {
-                    if (!obs.value.trim()) {
-                        obs.classList.add('is-invalid');
-                        todasLlenas = false;
-                    } else {
-                        obs.classList.remove('is-invalid');
-                    }
-                });
-
-                if (todasLlenas) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Listo',
-                        text: 'Todas las observaciones están completas.'
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Faltan observaciones',
-                        text: 'Completa las observaciones para todas las fotos.'
-                    });
-                }
-            });
-
-            // ====================================================================
-            // Lógica para actualizar el Resumen Final
-            // ====================================================================
-
-            function actualizarResumenFinal() {
-                document.getElementById('resumenValorAsegurado').innerText = `$${(parseFloat(valorAseguradoInput.value) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                document.getElementById('resumenPromedioComercial').innerText = `$${(parseFloat(promedioCalculadoInput.value) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                document.getElementById('resumenValorMatricula').innerText = `$${(parseFloat(valorMatriculaPendienteInput.value) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                document.getElementById('resumenPromedioNeto').innerText = `$${(parseFloat(promedioNetoInput.value) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                document.getElementById('resumenPorcentajeDano').innerText = `${(parseFloat(document.getElementById('porcentajeDano').value) || 0).toFixed(0)}%`;
-                document.getElementById('resumenValorSalvamento').innerText = `$${(parseFloat(document.getElementById('valorSalvamento').value) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-            }
-
-            // Llamar a las funciones de cálculo y actualización al cargar la página
-            recalcularValoresComerciales();
-            recalcularSalvamento();
-            actualizarResumenFinal();
-            actualizarContadorFotos(); // Inicializar el contador de fotos de daños
+            // Re-inicializar tooltips para elementos que puedan existir al cargar la página.
+            // Los tooltips de elementos dinámicamente añadidos se re-inicializarán en analisis-caso.js.
+            $('[data-bs-toggle="tooltip"]').tooltip("dispose").tooltip();
         });
     </script>
+    <script>
+        window.casoId = "@Model.CasoDetalle.caso_id";
+        window.aseguradoId = "@Model.CasoDetalle.asegurado_id";
+        window.vehiculoId = "@Model.CasoDetalle.vehiculo_id";
+        window.usuarioId = "@usuarioId";
+    </script>
+
+    @* Carga tu archivo JavaScript principal. Asegúrate de que esté en la ruta correcta. *@
+    <script src="~/js/analisis-caso.js"></script>
 }

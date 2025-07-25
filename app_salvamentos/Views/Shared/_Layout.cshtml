@@ -56,7 +56,7 @@
         var logoutTimer = setTimeout(logout, timeout);
 
         function logout() {
-            window.location.href = "@Url.Action("SignIn", "Authentication")"; // Redirige al login
+            window.location.href = "@Url.Action("InicioSesion", "Autenticacion")"; // Redirige al login
         }
 
         function resetTimer() {
@@ -76,19 +76,6 @@
           document.querySelectorAll('.logo-anim').forEach(el => el.classList.add('loaded'));
         });
     </script>
-    <script>
-        const modal = document.getElementById('modalCasos');
-        modal.addEventListener('show.bs.modal', function () {
-            fetch('@Url.Action("CasosRegistradosModal", "Casos")')
-                .then(response => response.text())
-                .then(html => {
-                    document.getElementById('contenidoCasosModal').innerHTML = html;
-                })
-                .catch(error => {
-                    document.getElementById('contenidoCasosModal').innerHTML =
-                      '<div class="alert alert-danger">Error al cargar los casos.</div>';
-                });
-        });
-    </script>
+
 </body>
 </html>

@@ -7,9 +7,16 @@
 <div class="row justify-content-center">
     <div class="col-lg-12">
         <div class="card card-height-100">
-            <div class="card-header">
-                <h4 class="card-title mb-0">📝 Crear Nuevo Caso</h4>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-folder-plus text-primary fs-4"></i>
+                    <div>
+                        <h4 class="card-title mb-1">Crear Nuevo Caso</h4>
+                        <small class="text-muted">Los campos <span class="text-danger">*</span> son obligatorios</small>
+                    </div>
+                </div>
             </div>
+
 
             <div class="card-body">
                 @* Importante: enctype="multipart/form-data" es crucial para el envío de archivos *@
@@ -19,14 +26,14 @@
                         <h5><i class="ri-user-2-line me-2"></i>Datos del Asegurado</h5>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label asp-for="NombreCompleto" class="form-label">Nombre del Asegurado</label>
+                                <label asp-for="NombreCompleto" class="form-label">Nombre del Asegurado *</label>
                                 <input asp-for="NombreCompleto" type="text" class="form-control" placeholder="Ej. Juan Pérez" required />
                                 <span asp-validation-for="NombreCompleto" class="text-danger"></span>
                                 <div class="invalid-feedback">Este campo es requerido.</div>
                             </div>
                             <div class="col-md-6 mb-3">
                                 @* Este campo estaba oculto, ahora es visible según tu controlador *@
-                                <label asp-for="Identificacion" class="form-label">Identificación (Cédula/RUC)</label>
+                                <label asp-for="Identificacion" class="form-label">Identificación (Cédula/RUC) *</label>
                                 <input asp-for="Identificacion" type="text" class="form-control" placeholder="Ej. 1712345678" />
                                 <span asp-validation-for="Identificacion" class="text-danger"></span>
                             </div>
@@ -53,7 +60,7 @@
                         <h5 class="mt-4"><i class="ri-car-line me-2"></i>Datos del Vehículo</h5>
                         <div class="row">
                             <div class="col-md-4 mb-3">
-                                <label asp-for="Placa" class="form-label">Placa</label>
+                                <label asp-for="Placa" class="form-label">Placa *</label>
                                 <input asp-for="Placa" type="text" class="form-control" placeholder="Ej. ABC-1234" required />
                                 <span asp-validation-for="Placa" class="text-danger"></span>
                                 <div class="invalid-feedback">Este campo es requerido.</div>
@@ -71,7 +78,7 @@
                                 <span asp-validation-for="Modelo" class="text-danger"></span>
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label asp-for="Anio" class="form-label">Año</label>
+                                <label asp-for="Anio" class="form-label">Año *</label>
                                 <input asp-for="Anio" type="number" class="form-control" placeholder="Ej. 2020" required />
                                 <span asp-validation-for="Anio" class="text-danger"></span>
                                 <div class="invalid-feedback">Este campo es requerido.</div>
@@ -107,19 +114,19 @@
                                 <span asp-validation-for="NumeroMotor" class="text-danger"></span>
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label asp-for="TipoVehiculo" class="form-label">Tipo de Vehículo</label>
+                                <label asp-for="TipoVehiculo" class="form-label">Tipo de Vehículo *</label>
                                 <input asp-for="TipoVehiculo" type="text" class="form-control" placeholder="Ej. Sedan/SUV" required />
                                 <span asp-validation-for="TipoVehiculo" class="text-danger"></span>
                                 <div class="invalid-feedback">Este campo es requerido.</div>
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label asp-for="Clase" class="form-label">Clase</label>
+                                <label asp-for="Clase" class="form-label">Clase *</label>
                                 <input asp-for="Clase" type="text" class="form-control" placeholder="Ej. Particular/Comercial" required />
                                 <span asp-validation-for="Clase" class="text-danger"></span>
                                 <div class="invalid-feedback">Este campo es requerido.</div>
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label asp-for="Color" class="form-label">Color</label>
+                                <label asp-for="Color" class="form-label">Color *</label>
                                 <input asp-for="Color" type="text" class="form-control" placeholder="Ej. Rojo/Blanco" required />
                                 <span asp-validation-for="Color" class="text-danger"></span>
                                 <div class="invalid-feedback">Este campo es requerido.</div>
@@ -133,28 +140,24 @@
 
                         <h5 class="mt-4"><i class="ri-file-text-line me-2"></i>Datos del Caso</h5>
                         <div class="row">
+                          
                             <div class="col-md-6 mb-3">
-                                @* Este campo estaba oculto, ahora es visible *@
-                                <label asp-for="NumeroAvaluo" class="form-label">Número de Avalúo</label>
-                                <input asp-for="NumeroAvaluo" type="text" class="form-control" placeholder="Ej. AV-2024-001" required />
-                                <span asp-validation-for="NumeroAvaluo" class="text-danger"></span>
-                                <div class="invalid-feedback">Este campo es requerido.</div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label asp-for="NumeroReclamo" class="form-label">Número de Reclamo</label>
-                                <input asp-for="NumeroReclamo" type="text" class="form-control" placeholder="Ej. REC-2024-001" />
+                                <label asp-for="NumeroReclamo" class="form-label">Número de Reclamo *</label>
+                                <input asp-for="NumeroReclamo" type="text" class="form-control" placeholder="Ej. REC-2024-001" required />
                                 <span asp-validation-for="NumeroReclamo" class="text-danger"></span>
+                                <div class="invalid-feedback">Este campo es requerido.</div>
+
                             </div>
                             <div class="col-md-6 mb-3">
                                 @* Este campo estaba oculto, ahora es visible *@
-                                <label asp-for="FechaSiniestro" class="form-label">Fecha del Siniestro</label>
+                                <label asp-for="FechaSiniestro" class="form-label">Fecha del Siniestro *</label>
                                 <input asp-for="FechaSiniestro" type="date" class="form-control" required />
                                 <span asp-validation-for="FechaSiniestro" class="text-danger"></span>
                                 <div class="invalid-feedback">Este campo es requerido.</div>
                             </div>
                             @* Descomentado el select de CasoEstadoId *@
-                            <div class="col-md-6 mb-3">
-                                <label asp-for="CasoEstadoId" class="form-label">Estado del Caso</label>
+                            <div class="col-md-6 mb-3" hidden>
+                                <label asp-for="CasoEstadoId" class="form-label">Estado del Caso *</label>
                                 <select asp-for="CasoEstadoId" class="form-select" data-choices data-choices-search-false required>
                                     @foreach (var tipo in Model.EstadosCaso)
                                     {
@@ -173,12 +176,19 @@
 
                     <!-- STEP 2: Carga de documentos múltiples -->
                     <div class="step d-none" id="step2">
-                        <h5><i class="ri-file-upload-line me-2"></i>Carga de Documentos</h5>
-
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5 class="mb-0">
+                                <i class="ri-file-upload-line me-2"></i>Carga de Documentos
+                            </h5>
+                            <span class="form-text text-muted ms-3">
+                                ⚠️ Se sugiere que el nombre del archivo no exceda
+                                <strong>40 caracteres</strong>.
+                            </span>
+                        </div>
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
                                 <label for="documentoTipo" class="form-label">Tipo de Documento</label>
-                                <select id="documentoTipo" class="form-select" >
+                                                      <select id="documentoTipo" class="form-select">
                                     @* Añadido 'required' para este select *@
                                     <option value="">Seleccione un tipo</option>
                                     <optgroup label="Documentos del Asegurado">
@@ -254,9 +264,10 @@
 
 @section Scripts {
     <script>
-        var crearCasoApiUrl = '@Url.Action("CrearCaso", "Casos")'; // Asegúrate de que la URL sea correcta
+       var crearCasoApiUrl = '@Url.Action("CrearCaso", "Casos")'; // Asegúrate de que la URL sea correcta
         var usuarioIdFromModel = @Model.UsuarioId; // Inyectar el UsuarioId desde el modelo
     </script>
+
     <script>
         // Inyectar mensajes de TempData en JavaScript
         var errorMessage = '@Html.Raw(TempData["ErrorMessage"])';
