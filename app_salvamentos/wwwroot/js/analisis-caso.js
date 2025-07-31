@@ -335,6 +335,7 @@
             previewContent.append(`<p class="alert alert-warning">No se puede previsualizar este tipo de archivo: <strong>.${fileName.split(".").pop().toLowerCase()}</strong></p><a href="${source}" target="_blank" class="btn btn-primary mt-2">Descargar</a>`);
         }
     }
+
     // ====================================================================
     // Lógica para la sección de Valores Comerciales
     // ====================================================================
@@ -1001,11 +1002,11 @@
 
         inicializarManejadoresArchivosValorComercial() {
             const tiposDocumentos = [
-                { id: 'inputPatioTuercaFile', key: 'filePatioTuerca', label: 'Patio Tuerca', tipoDocId: 13 },
-                { id: 'inputAEADEFile', key: 'fileAEADE', label: 'AEADE', tipoDocId: 13 },
-                { id: 'inputMarketplaceFile', key: 'fileMarketplace', label: 'Marketplace', tipoDocId: 13 },
-                { id: 'inputHugoVargasFile', key: 'fileHugoVargas', label: 'Hugo Vargas', tipoDocId: 13 },
-                { id: 'inputOtrosFile', key: 'fileOtros', label: 'Otros', tipoDocId: 13 }
+                { id: 'filePatioTuerca', key: 'filePatioTuerca', label: 'Patio Tuerca', tipoDocId: 13 },
+                { id: 'fileAEADE', key: 'fileAEADE', label: 'AEADE', tipoDocId: 13 },
+                { id: 'fileMarketplace', key: 'fileMarketplace', label: 'Marketplace', tipoDocId: 13 },
+                { id: 'fileHugoVargas', key: 'fileHugoVargas', label: 'Hugo Vargas', tipoDocId: 13 },
+                { id: 'fileOtros', key: 'fileOtros', label: 'Otros', tipoDocId: 13 }
             ];
 
             window.loadedValorFiles = window.loadedValorFiles || {};
@@ -1016,11 +1017,13 @@
                     if (file) {
                         window.loadedValorFiles[key] = {
                             file,
+                            File: file, // compatibilidad
                             tipo_documento_id: tipoDocId,
                             observaciones: `Documento de ${label}`,
                             ambito_documento: "VALORCOMERCIAL",
                             nombre_archivo: file.name,
-                            ruta_fisica: ''
+                            ruta_fisica: '',
+                            tipo_mime: file.type
                         };
                     } else {
                         delete window.loadedValorFiles[key];
@@ -1028,6 +1031,7 @@
                 });
             });
         }
+
 
         setupGlobalDocumentHandlers() {
             window.loadedDocuments = window.loadedDocuments || { caso: [], asegurado: [] };
@@ -1132,7 +1136,6 @@
                 this.debugFormData(formData);
             }
 
-
             return formData;
         }
 
@@ -1144,6 +1147,7 @@
             formData.append('aseguradoId', this.aseguradoId || '');
             formData.append('vehiculoId', this.vehiculoId || '');
             formData.append('NumeroReclamo', $('#numeroReclamo').val() || '');
+
             const basicFields = [
                 'nombreCompleto', 'metodoAvaluo', 'direccionAvaluo',
                 'comentariosAvaluo', 'notasAvaluo', 'fechaSiniestro',
@@ -1161,7 +1165,6 @@
                         if (!isNaN(d) && d.getFullYear() >= 1753) {
                             formData.append(field.charAt(0).toUpperCase() + field.slice(1), value);
                         } else {
-                            // Puedes loggear aquí para debug si quieres
                             console.warn(`Fecha inválida para ${field}: ${value}`);
                         }
                     } else {
@@ -1169,7 +1172,6 @@
                     }
                 }
             });
-
         }
 
         appendStructuredData(formData) {
@@ -1238,12 +1240,11 @@
         }
 
         getDanosData() {
-            if (!window.loadedDamagePhotos) return [];
+            if (!window.loadedDamagePhotos || !Array.isArray(window.loadedDamagePhotos)) return [];
 
             return window.loadedDamagePhotos.map(item => ({
-                Observaciones: item.observaciones || "",  // Mantén la propiedad vacía si no hay observaciones
-                nombre_archivo: item.nombre_archivo,      // Si necesitas enviar el nombre también
-                // Puedes agregar aquí más campos si son necesarios (como contenido_base64, mime_type, etc)
+                Observaciones: item.observaciones || "",
+                nombre_archivo: item.nombre_archivo || "",
             }));
         }
 
@@ -1272,63 +1273,156 @@
             return partes;
         }
 
-
+        // MÉTODO CORREGIDO: appendDocumentData
         appendDocumentData(formData) {
+            console.log('=== INICIANDO PROCESAMIENTO DE DOCUMENTOS ===');
+
+            const allDocs = this.prepareCaseDocuments();
+
             // Documentos del caso
-            if (window.loadedDocuments?.caso) {
-                this.appendDocumentList(formData, "DocumentosCasoInput", window.loadedDocuments.caso);
-            }
+            const casoDocs = allDocs.filter(d => d.ambito_documento === "CASO");
+            this.appendDocumentList(formData, "DocumentosCasoInput", casoDocs);
+            console.log(`Documentos del caso preparados: ${casoDocs.length}`);
+
+            // Documentos del asegurado
+            const aseguradosDocs = allDocs.filter(d => d.ambito_documento === "ASEGURADO");
+            this.appendDocumentList(formData, "DocumentosAseguradoInput", aseguradosDocs);
+            console.log(`Documentos del asegurado preparados: ${aseguradosDocs.length}`);
 
             // Documentos de daño
             const danosDocs = this.prepareDamageDocuments();
             this.appendDocumentList(formData, "DocumentosDanoInput", danosDocs);
+            console.log(`Documentos de daños preparados: ${danosDocs.length}`);
 
             // Documentos de valores comerciales
             const valoresDocs = this.prepareCommercialValueDocuments();
             this.appendDocumentList(formData, "DocumentosValorComercialInput", valoresDocs);
+            console.log(`Documentos de valor comercial preparados: ${valoresDocs.length}`);
         }
 
+        // MÉTODO NUEVO: prepareCaseDocuments
+        prepareCaseDocuments() {
+            if (!window.loadedDocuments) {
+                console.warn('window.loadedDocuments no existe');
+                return [];
+            }
+
+            const allDocuments = [];
+
+            // Procesar documentos de todos los ámbitos
+            Object.keys(window.loadedDocuments).forEach(ambito => {
+                if (Array.isArray(window.loadedDocuments[ambito])) {
+                    console.log(`Procesando ámbito '${ambito}': ${window.loadedDocuments[ambito].length} documentos`);
+
+                    window.loadedDocuments[ambito].forEach(doc => {
+                        // Verificar que el documento tenga un archivo válido
+                        const hasValidFile = (doc.File instanceof File) || (doc.file instanceof File);
+
+                        allDocuments.push({
+                            file: doc.File || doc.file || null,
+                            documento_id: doc.documento_id || null,
+                            tipo_documento_id: doc.tipo_documento_id || 1,
+                            observaciones: doc.observaciones || '',
+                            ambito_documento: doc.ambito_documento || ambito.toUpperCase(),
+                            nombre_archivo: doc.nombre_archivo || '',
+                            ruta_fisica: doc.ruta_fisica || '',
+                            hasValidFile: hasValidFile
+                        });
+                    });
+                }
+            });
+
+            console.log(`Total documentos del caso: ${allDocuments.length}`);
+            return allDocuments;
+        }
+
+
+        // MÉTODO CORREGIDO: prepareDamageDocuments
         prepareDamageDocuments() {
-            if (!window.loadedDamagePhotos) return [];
+            if (!window.loadedDamagePhotos || !Array.isArray(window.loadedDamagePhotos)) {
+                console.warn('window.loadedDamagePhotos no existe o no es array');
+                return [];
+            }
 
-            return window.loadedDamagePhotos.map(item => ({
-                file: item.file ?? null, // puede ser null
-                documento_id: item.documento_id || null,
-                tipo_documento_id: item.tipo_documento_id || 6,
-                observaciones: item.observaciones || `Observación de daño`,
-                ambito_documento: item.ambito_documento || "DANO",
-                nombre_archivo: item.nombre_archivo || '',
-                ruta_fisica: item.ruta_fisica || ''
-            }));
+            console.log(`Procesando ${window.loadedDamagePhotos.length} fotos de daños`);
+
+            return window.loadedDamagePhotos.map(item => {
+                const hasValidFile = (item.file instanceof File) || (item.File instanceof File);
+
+                return {
+                    file: item.file || item.File || null,
+                    documento_id: item.documento_id || null,
+                    tipo_documento_id: item.tipo_documento_id || 6,
+                    observaciones: item.observaciones || `Observación de daño`,
+                    ambito_documento: item.ambito_documento || "DANO",
+                    nombre_archivo: item.nombre_archivo || '',
+                    ruta_fisica: item.ruta_fisica || '',
+                    hasValidFile: hasValidFile
+                };
+            });
         }
 
-
-
+        // MÉTODO CORREGIDO: prepareCommercialValueDocuments
         prepareCommercialValueDocuments() {
-            if (!window.loadedValorFiles) return [];
+            if (!window.loadedValorFiles) {
+                console.warn('window.loadedValorFiles no existe');
+                return [];
+            }
 
-            return Object.values(window.loadedValorFiles)
-                .filter(Boolean)
-                .map(item => ({
-                    file: item.file || null,
+            const valorDocs = Object.values(window.loadedValorFiles).filter(Boolean);
+            console.log(`Procesando ${valorDocs.length} documentos de valor comercial`);
+
+            return valorDocs.map(item => {
+                const hasValidFile = (item.file instanceof File) || (item.File instanceof File);
+
+                return {
+                    file: item.file || item.File || null,
                     documento_id: item.documento_id || null,
                     tipo_documento_id: item.tipo_documento_id || 13,
                     observaciones: item.observaciones || `Documento de Valor Comercial`,
                     ambito_documento: item.ambito_documento || "VALORCOMERCIAL",
                     nombre_archivo: item.nombre_archivo || '',
-                    ruta_fisica: item.ruta_fisica || ''
-                }));
+                    ruta_fisica: item.ruta_fisica || '',
+                    hasValidFile: hasValidFile
+                };
+            });
         }
 
+        // MÉTODO MEJORADO: appendDocumentList
         appendDocumentList(formData, key, documents) {
+            if (!Array.isArray(documents)) {
+                console.warn(`${key}: No hay documentos o no es un array`);
+                return;
+            }
+
+            console.log(`\n=== PROCESANDO ${key} (${documents.length} documentos) ===`);
+
             documents.forEach((doc, index) => {
+                console.log(`${key}[${index}]:`, {
+                    hasFile: !!(doc.file instanceof File),
+                    fileName: doc.nombre_archivo,
+                    documentId: doc.documento_id,
+                    tipoDoc: doc.tipo_documento_id,
+                    ambito: doc.ambito_documento,
+                    fileSize: doc.file instanceof File ? doc.file.size : 'N/A'
+                });
+
+                // Solo agregar el archivo si es un File válido
                 if (doc.file instanceof File) {
                     formData.append(`${key}[${index}].File`, doc.file);
+                    console.log(`✅ Archivo adjuntado: ${key}[${index}].File = ${doc.file.name} (${doc.file.size} bytes)`);
+                } else if (doc.documento_id) {
+                    console.log(`ℹ️  Documento existente en BD: ${key}[${index}].DocumentoId = ${doc.documento_id}`);
+                } else {
+                    console.warn(`⚠️  Sin archivo ni documento_id: ${key}[${index}]`);
                 }
+
+                // Agregar metadatos siempre
                 if (doc.documento_id) {
                     formData.append(`${key}[${index}].DocumentoId`, doc.documento_id);
                 }
-                formData.append(`${key}[${index}].TipoDocumentoId`, doc.tipo_documento_id);
+
+                formData.append(`${key}[${index}].TipoDocumentoId`, doc.tipo_documento_id || 1);
                 formData.append(`${key}[${index}].Observaciones`, doc.observaciones || '');
                 formData.append(`${key}[${index}].AmbitoDocumento`, doc.ambito_documento || '');
                 formData.append(`${key}[${index}].NombreArchivo`, doc.nombre_archivo || '');
@@ -1455,15 +1549,15 @@
             let $indicator = $('#save-indicator');
             if ($indicator.length === 0) {
                 $indicator = $(`
-                <div id="save-indicator" class="position-fixed" style="top: 20px; right: 20px; z-index: 9999;">
-                    <div class="alert alert-info alert-dismissible fade show" role="alert">
-                        <div class="d-flex align-items-center">
-                            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                            <span>Guardando...</span>
-                        </div>
+            <div id="save-indicator" class="position-fixed" style="top: 20px; right: 20px; z-index: 9999;">
+                <div class="alert alert-info alert-dismissible fade show" role="alert">
+                    <div class="d-flex align-items-center">
+                        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                        <span>Guardando...</span>
                     </div>
                 </div>
-            `);
+            </div>
+        `);
                 $('body').append($indicator);
             }
             $indicator.show();
@@ -1473,13 +1567,13 @@
             const $indicator = $('#save-indicator');
             if ($indicator.length) {
                 $indicator.html(`
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <div class="d-flex align-items-center">
-                        <i class="ri-check-line me-2"></i>
-                        <span>${message}</span>
-                    </div>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="ri-check-line me-2"></i>
+                    <span>${message}</span>
                 </div>
-            `);
+            </div>
+        `);
             }
         }
 
@@ -1487,13 +1581,13 @@
             const $indicator = $('#save-indicator');
             if ($indicator.length) {
                 $indicator.html(`
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <div class="d-flex align-items-center">
-                        <i class="ri-error-warning-line me-2"></i>
-                        <span>${message}</span>
-                    </div>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="ri-error-warning-line me-2"></i>
+                    <span>${message}</span>
                 </div>
-            `);
+            </div>
+        `);
             }
         }
 
@@ -1501,30 +1595,488 @@
             $('#save-indicator').fadeOut();
         }
 
-        // 11. Debug (solo desarrollo)
+        // 11. Debug mejorado
         debugFormData(formData) {
+            console.log("=== DEBUG FORM DATA COMPLETO ===");
             console.log("Auto-guardado - Tab:", this.currentTab);
-            console.log("FormData entries:");
 
             const fileSummary = [];
+            const otherFields = [];
 
             for (let pair of formData.entries()) {
                 if (pair[1] instanceof File) {
-                    console.log(pair[0] + ': File (' + pair[1].name + ', ' + pair[1].size + ' bytes)');
-                    fileSummary.push(`📎 ${pair[0]} → ${pair[1].name} (${pair[1].size} bytes)`);
+                    const fileInfo = `📎 ${pair[0]} → ${pair[1].name} (${pair[1].size} bytes)`;
+                    fileSummary.push(fileInfo);
+                    console.log(`FILE: ${fileInfo}`);
                 } else {
-                    console.log(pair[0] + ': ' + pair[1]);
+                    otherFields.push(`${pair[0]}: ${pair[1]}`);
+                    console.log(`FIELD: ${pair[0]} = ${pair[1]}`);
                 }
             }
 
-            console.warn(`\n=== 📁 Archivos adjuntados (${fileSummary.length}) ===`);
+            console.log(`\n=== 📁 RESUMEN DE ARCHIVOS (${fileSummary.length}) ===`);
             if (fileSummary.length > 0) {
-                fileSummary.forEach(msg => console.warn(msg));
+                fileSummary.forEach(msg => console.log(msg));
             } else {
-                console.warn('❌ No se está enviando ningún archivo en este guardado.');
+                console.warn('❌ NO SE ESTÁN ENVIANDO ARCHIVOS');
             }
+
+            // Verificar estado de documentos
+            this.diagnosticarDocumentos();
+        }
+
+        // 12. Función de diagnóstico
+        diagnosticarDocumentos() {
+            console.log('\n=== 🗂️ DIAGNÓSTICO DE DOCUMENTOS ===');
+
+            // Verificar window.loadedDocuments
+            if (window.loadedDocuments) {
+                console.log('📋 window.loadedDocuments:');
+                Object.keys(window.loadedDocuments).forEach(ambito => {
+                    const docs = window.loadedDocuments[ambito];
+                    console.log(`  ${ambito.toUpperCase()}: ${docs.length} documentos`);
+                    docs.forEach((doc, index) => {
+                        console.log(`    [${index}] ${doc.nombre_archivo}:`, {
+                            hasFile: !!(doc.File || doc.file),
+                            fileType: (doc.File || doc.file) ? (doc.File || doc.file).type : 'N/A',
+                            fileSize: (doc.File || doc.file) ? (doc.File || doc.file).size : 'N/A',
+                            tipoDoc: doc.tipo_documento_id,
+                            documentoId: doc.documento_id
+                        });
+                    });
+                });
+            } else {
+                console.warn('❌ window.loadedDocuments no existe');
+            }
+
+            // Verificar window.loadedDamagePhotos
+            if (window.loadedDamagePhotos) {
+                console.log(`📸 window.loadedDamagePhotos: ${window.loadedDamagePhotos.length} fotos`);
+                window.loadedDamagePhotos.forEach((photo, index) => {
+                    console.log(`  [${index}] ${photo.nombre_archivo}:`, {
+                        hasFile: !!(photo.file || photo.File),
+                        fileType: (photo.file || photo.File) ? (photo.file || photo.File).type : 'N/A',
+                        fileSize: (photo.file || photo.File) ? (photo.file || photo.File).size : 'N/A'
+                    });
+                });
+            } else {
+                console.warn('❌ window.loadedDamagePhotos no existe');
+            }
+
+            // Verificar window.loadedValorFiles
+            if (window.loadedValorFiles) {
+                const valorDocs = Object.values(window.loadedValorFiles).filter(Boolean);
+                console.log(`💰 window.loadedValorFiles: ${valorDocs.length} documentos`);
+                valorDocs.forEach((doc, index) => {
+                    console.log(`  [${index}] ${doc.nombre_archivo}:`, {
+                        hasFile: !!(doc.file || doc.File),
+                        fileType: (doc.file || doc.File) ? (doc.file || doc.File).type : 'N/A',
+                        fileSize: (doc.file || doc.File) ? (doc.file || doc.File).size : 'N/A'
+                    });
+                });
+            } else {
+                console.warn('❌ window.loadedValorFiles no existe');
+            }
+
+            console.log('=== FIN DIAGNÓSTICO ===\n');
         }
     }
+
+    // ====================================================================================
+    // LÓGICA DE CARGA Y GESTIÓN DE DOCUMENTOS GENERALES (CORREGIDA)
+    // ====================================================================================
+
+    // Variables globales para la gestión de documentos
+
+    // Funciones auxiliares para iconos y colores
+    function getIconByType(mimeType) {
+        if (!mimeType) return 'ri-file-line';
+
+        if (mimeType.includes('image')) return 'ri-image-line';
+        if (mimeType.includes('pdf')) return 'ri-file-pdf-line';
+        if (mimeType.includes('word') || mimeType.includes('document')) return 'ri-file-word-line';
+        if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return 'ri-file-excel-line';
+        if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) return 'ri-file-ppt-line';
+        if (mimeType.includes('text')) return 'ri-file-text-line';
+        if (mimeType.includes('zip') || mimeType.includes('rar')) return 'ri-file-zip-line';
+
+        return 'ri-file-line';
+    }
+
+    function getColorByType(mimeType) {
+        if (!mimeType) return 'text-secondary';
+
+        if (mimeType.includes('image')) return 'text-success';
+        if (mimeType.includes('pdf')) return 'text-danger';
+        if (mimeType.includes('word') || mimeType.includes('document')) return 'text-primary';
+        if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return 'text-success';
+        if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) return 'text-warning';
+        if (mimeType.includes('text')) return 'text-info';
+        if (mimeType.includes('zip') || mimeType.includes('rar')) return 'text-dark';
+
+        return 'text-secondary';
+    }
+
+    // Función para precargar documentos existentes en la UI
+    function loadExistingDocumentsToUI() {
+        listaDocumentosDiv.empty(); // Limpiar el contenedor antes de recargar
+
+        if (!window.loadedDocuments) {
+            console.warn('window.loadedDocuments no existe al cargar la UI');
+            return;
+        }
+
+        Object.keys(window.loadedDocuments).forEach(ambitoKey => {
+            if (Array.isArray(window.loadedDocuments[ambitoKey])) {
+                window.loadedDocuments[ambitoKey].forEach(doc => {
+                    const fileMime = doc.tipo_mime || 'application/octet-stream';
+                    const docItem = `
+                <div class="col-md-4 col-sm-6 mb-3 fade-in-up" data-ui-index="${doc.uiIndex || ''}" data-doc-id="${doc.documento_id || ''}" data-ambito="${doc.ambito_documento ? doc.ambito_documento.toLowerCase() : ambitoKey}">
+                    <div class="card border card-animate">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0 me-3">
+                                    <i class="${getIconByType(fileMime)} fs-2 ${getColorByType(fileMime)}"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1 text-truncate" style="max-width: 150px;">${doc.nombre_archivo || 'Sin nombre'}</h6>
+                                    <small class="text-muted">${doc.nombre_tipo_documento || 'Documento'} (${doc.ambito_documento || ambitoKey.toUpperCase()})</small>
+                                </div>
+                                <div class="flex-shrink-0">
+                                    <button type="button" class="btn btn-sm btn-light p-0 remove-doc-btn" data-bs-toggle="tooltip" data-bs-placement="top" title="Eliminar">
+                                        <i class="ri-delete-bin-line text-danger"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-light p-0 preview-doc-btn ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Previsualizar">
+                                        <i class="ri-eye-line text-info"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            ${doc.observaciones ? `<p class="text-muted mt-2 mb-0 text-wrap"><small>Obs: ${doc.observaciones}</small></p>` : ''}
+                        </div>
+                    </div>
+                </div>
+                `;
+                    listaDocumentosDiv.append(docItem);
+                });
+            }
+        });
+
+        // Re-inicializa los tooltips de Bootstrap después de añadir todos los elementos
+        $('[data-bs-toggle="tooltip"]').tooltip("dispose").tooltip();
+    }
+
+    // Cargar documentos existentes al iniciar
+    loadExistingDocumentsToUI();
+
+    // Evento para agregar documentos (CORREGIDO)
+    $('#btnAgregarDoc').on('click', async function () {
+        const tipoDocumentoId = categoriaDocumentoSelect.val();
+        const tipoDocumentoText = categoriaDocumentoSelect.find("option:selected").text();
+        const selectedOptionElement = categoriaDocumentoSelect.find("option:selected");
+
+        // Lee el ámbito del atributo data-ambito
+        let ambitoFijo = selectedOptionElement.data("ambito") ? selectedOptionElement.data("ambito").toLowerCase() : 'caso';
+
+        // Validaciones iniciales
+        if (!tipoDocumentoId) {
+            categoriaDocumentoSelect.addClass("is-invalid");
+            Swal.fire({
+                icon: "warning",
+                title: "Selección Requerida",
+                text: "Por favor, seleccione un tipo de documento de la lista.",
+                confirmButtonText: "Aceptar",
+                confirmButtonColor: "#f7b84b"
+            });
+            return;
+        } else {
+            categoriaDocumentoSelect.removeClass("is-invalid");
+        }
+
+        const observaciones = observacionesDocumentoTextarea.val();
+        const files = archivosDocumentoInput[0].files;
+
+        if (files.length === 0) {
+            Swal.fire({
+                icon: "warning",
+                title: "Archivos Requeridos",
+                text: "Por favor, seleccione al menos un archivo para subir.",
+                confirmButtonText: "Aceptar",
+                confirmButtonColor: "#f7b84b"
+            });
+            return;
+        }
+
+        // Procesamiento de archivos seleccionados
+        for (const file of files) {
+            const uiId = crypto.randomUUID();
+
+            // Re-evaluar el ámbito si hay lógica específica por tipoDocumentoId
+            let finalAmbito = ambitoFijo;
+            if (parseInt(tipoDocumentoId) === 6) { // ID para 'Fotos del Siniestro'
+                finalAmbito = "dano";
+            } else if (parseInt(tipoDocumentoId) === 13) { // ID para 'Evidencia de Valores Comerciales'
+                finalAmbito = "valorcomercial";
+            }
+            finalAmbito = finalAmbito.toLowerCase();
+
+            // Asegurar que el ámbito existe en loadedDocuments
+            if (!window.loadedDocuments.hasOwnProperty(finalAmbito)) {
+                console.error(`Error: El ámbito '${finalAmbito}' no es una categoría válida en loadedDocuments.`);
+                // Crear el ámbito si no existe
+                window.loadedDocuments[finalAmbito] = [];
+            }
+
+            // Verificar duplicados
+            const yaExiste = window.loadedDocuments[finalAmbito].some(
+                doc => (doc.nombre_archivo === file.name || (doc.File && doc.File.name === file.name)) &&
+                    doc.tipo_documento_id === parseInt(tipoDocumentoId)
+            );
+
+            if (yaExiste) {
+                Swal.fire({
+                    icon: "info",
+                    title: "Archivo Duplicado",
+                    text: `El archivo "${file.name}" con este tipo de documento ya ha sido añadido en el ámbito ${finalAmbito}.`,
+                    confirmButtonText: "Aceptar",
+                    confirmButtonColor: "#f7b84b"
+                });
+                continue;
+            }
+
+            try {
+                // CREAR DOCUMENTO CON AMBAS PROPIEDADES File y file
+                const newDoc = {
+                    tipo_documento_id: parseInt(tipoDocumentoId),
+                    nombre_tipo_documento: tipoDocumentoText,
+                    nombre_archivo: file.name,
+                    observaciones: observaciones,
+                    ambito_documento: finalAmbito.toUpperCase(),
+                    File: file, // ✅ Propiedad principal
+                    file: file, // ✅ Compatibilidad
+                    uiIndex: uiId,
+                    tipo_mime: file.type,
+                    documento_id: null, // Nuevo documento
+                    ruta_fisica: '' // Nuevo documento
+                };
+
+                window.loadedDocuments[finalAmbito].push(newDoc);
+                console.log(`✅ Documento '${file.name}' agregado al ámbito '${finalAmbito}'.`);
+
+                // Añadir a la UI
+                const docItem = `
+            <div class="col-md-4 col-sm-6 mb-3 fade-in-up" data-ui-index="${uiId}" data-ambito="${finalAmbito}">
+                <div class="card border card-animate">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-shrink-0 me-3">
+                                <i class="${getIconByType(newDoc.tipo_mime)} fs-2 ${getColorByType(newDoc.tipo_mime)}"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1 text-truncate">${newDoc.nombre_archivo}</h6>
+                                <small class="text-muted">${newDoc.nombre_tipo_documento} (${newDoc.ambito_documento})</small>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <button type="button" class="btn btn-sm btn-light p-0 remove-doc-btn" data-bs-toggle="tooltip" data-bs-placement="top" title="Eliminar">
+                                    <i class="ri-delete-bin-line text-danger"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-light p-0 preview-doc-btn ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Previsualizar">
+                                    <i class="ri-eye-line text-info"></i>
+                                </button>
+                            </div>
+                        </div>
+                        ${newDoc.observaciones ? `<p class="text-muted mt-2 mb-0 text-wrap"><small>Obs: ${newDoc.observaciones}</small></p>` : ''}
+                    </div>
+                </div>
+            </div>
+            `;
+                listaDocumentosDiv.append(docItem);
+
+                // Re-inicializar tooltips
+                $('[data-bs-toggle="tooltip"]').tooltip('dispose').tooltip();
+
+                Swal.fire({
+                    toast: true,
+                    position: "top-end",
+                    icon: "success",
+                    title: "Archivo agregado",
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+
+            } catch (error) {
+                console.error("Error al procesar archivo:", error);
+                Swal.fire({
+                    icon: "error",
+                    title: "Error de Archivo",
+                    text: `No se pudo procesar el archivo ${file.name}.`,
+                    confirmButtonText: "Aceptar"
+                });
+            }
+        }
+
+        // Limpiar campos después de agregar todos los archivos
+        archivosDocumentoInput.val('');
+        observacionesDocumentoTextarea.val('');
+        categoriaDocumentoSelect.val('');
+    });
+
+    // Evento: Eliminar Documentos (Delegación de Eventos)
+    listaDocumentosDiv.on("click", ".remove-doc-btn", function () {
+        const card = $(this).closest(".col-md-4");
+        const uiId = card.data("ui-index");
+        const documentoId = card.data("doc-id");
+        const ambito = card.data("ambito");
+
+        Swal.fire({
+            title: "¿Estás seguro?",
+            text: "¡El documento será eliminado!",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            cancelButtonColor: "#3085d6",
+            confirmButtonText: "Sí, eliminarlo!",
+            cancelButtonText: "Cancelar",
+        }).then((result) => {
+            if (result.isConfirmed) {
+                if (documentoId) {
+                    // Documento guardado en la BD
+                    $.ajax({
+                        url: `${API_DOCUMENTOS_BASE_URL}?documentoId=${documentoId}`,
+                        type: "POST",
+                        headers: {
+                            'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                        },
+                        success: function (response) {
+                            card.remove();
+                            // Eliminar del array loadedDocuments
+                            if (ambito && window.loadedDocuments.hasOwnProperty(ambito)) {
+                                window.loadedDocuments[ambito] = window.loadedDocuments[ambito].filter(doc => doc.documento_id !== documentoId);
+                                console.log(`Documento con ID ${documentoId} eliminado (DB) del ámbito ${ambito}.`);
+                            }
+                            Swal.fire("Eliminado!", "El documento ha sido eliminado de la base de datos.", "success");
+                        },
+                        error: function (xhr, status, error) {
+                            console.error("Error al eliminar documento de la BD:", xhr.responseText);
+                            const errorMessage = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : "Hubo un problema al eliminar el documento de la base de datos.";
+                            Swal.fire("Error!", errorMessage, "error");
+                        }
+                    });
+                } else if (typeof uiId !== 'undefined') {
+                    // Documento en memoria
+                    if (ambito && window.loadedDocuments.hasOwnProperty(ambito)) {
+                        window.loadedDocuments[ambito] = window.loadedDocuments[ambito].filter(doc => doc.uiIndex !== uiId);
+                        console.log(`Documento con uiId ${uiId} eliminado (memoria) del ámbito ${ambito}.`);
+                    }
+                    card.remove();
+                    Swal.fire("Eliminado!", "El documento ha sido removido de la lista temporal.", "success");
+                } else {
+                    Swal.fire("Error!", "No se pudo identificar el documento para eliminar.", "error");
+                }
+            }
+        });
+    });
+
+    // Evento: Previsualizar Documentos (Delegación de Eventos)
+    listaDocumentosDiv.on("click", ".preview-doc-btn", function () {
+        const card = $(this).closest(".col-md-4");
+        const uiId = card.data("ui-index");
+        const documentoId = card.data("doc-id");
+        const ambito = card.data("ambito");
+
+        let doc;
+        // Buscar el documento en el ámbito correcto
+        if (ambito && window.loadedDocuments.hasOwnProperty(ambito)) {
+            if (typeof uiId !== 'undefined') {
+                doc = window.loadedDocuments[ambito].find((d) => d.uiIndex === uiId);
+            } else if (documentoId) {
+                doc = window.loadedDocuments[ambito].find((d) => d.documento_id === documentoId);
+            }
+        }
+
+        if (!doc) {
+            Swal.fire({
+                icon: "error",
+                title: "Error de Previsualización",
+                text: "Documento no encontrado en la memoria o no se pudo identificar.",
+                confirmButtonText: "Aceptar"
+            });
+            return;
+        }
+
+        previewContent.empty(); // Limpiar contenido previo del modal
+
+        let previewSource;
+        let fileMime = doc.tipo_mime;
+        let fileName = doc.nombre_archivo;
+
+        // PRIORIDAD 1: Documentos recién agregados (en memoria, tienen el objeto File)
+        if (doc.File || doc.file) {
+            const fileObj = doc.File || doc.file;
+            fileMime = fileObj.type;
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                previewSource = e.target.result;
+                displayPreview(fileMime, previewSource, fileName);
+                previewModal.show();
+            };
+            reader.readAsDataURL(fileObj);
+            return;
+        }
+        // PRIORIDAD 2: Documentos ya guardados en DB
+        else if (doc.documento_id && doc.ruta_fisica) {
+            previewSource = `${API_CASOS_BASE_URL}?rutaRelativa=${encodeURIComponent(doc.ruta_fisica)}`;
+        }
+        else {
+            Swal.fire({
+                icon: "error",
+                title: "Error de Previsualización",
+                text: "No se encontró contenido o URL para previsualizar este documento.",
+                confirmButtonText: "Aceptar"
+            });
+            return;
+        }
+
+        displayPreview(fileMime, previewSource, fileName);
+        previewModal.show();
+    });
+
+    // Función displayPreview
+    function displayPreview(mimeType, source, fileName) {
+        previewContent.empty();
+
+        if (mimeType && mimeType.includes("image")) {
+            previewContent.append(`<img src="${source}" class="img-fluid" style="max-height: 80vh;" alt="${fileName}">`);
+        } else if (mimeType && mimeType.includes("pdf")) {
+            previewContent.append(`<iframe src="${source}" width="100%" height="600px" style="border: none;"></iframe>`);
+        } else {
+            const extension = fileName ? fileName.split(".").pop().toLowerCase() : 'desconocido';
+            previewContent.append(`<p class="alert alert-warning">No se puede previsualizar este tipo de archivo: <strong>.${extension}</strong></p><a href="${source}" target="_blank" class="btn btn-primary mt-2">Descargar</a>`);
+        }
+    }
+
+    // Funciones globales de utilidad para diagnóstico
+    window.diagnosticarDocumentos = function () {
+        if (window.casoFinancieroManager) {
+            window.casoFinancieroManager.diagnosticarDocumentos();
+        } else {
+            console.warn('CasoFinancieroManager no está inicializado');
+        }
+    };
+
+    // Función para verificar el estado completo
+    window.verificarEstadoCompleto = function () {
+        console.log('=== VERIFICACIÓN COMPLETA DEL ESTADO ===');
+        console.log('window.loadedDocuments:', window.loadedDocuments);
+        console.log('window.loadedDamagePhotos:', window.loadedDamagePhotos);
+        console.log('window.loadedValorFiles:', window.loadedValorFiles);
+
+        if (window.casoFinancieroManager) {
+            console.log('CasoFinancieroManager inicializado correctamente');
+            window.casoFinancieroManager.diagnosticarDocumentos();
+        } else {
+            console.warn('CasoFinancieroManager no está disponible');
+        }
+    };
 
     // Inicialización cuando el DOM esté listo
     $(document).ready(() => {
