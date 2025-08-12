@@ -1,6 +1,6 @@
 ﻿$(document).ready(function () {
 
-    let loadedValorFiles = []; // <<--- ¡¡Añade esta línea aquí!!
+    window.loadedValorFiles = {};   // un objeto, en lugar de un array
     let loadedDamagePhotos = [];
 
     function parseDecimal(value) {
@@ -368,12 +368,7 @@
         if (file) {
             try {
                 const contenidoBase64 = await readFileAsBase64(file);
-                loadedValorFiles[inputId] = {
-                    nombre_archivo: file.name,
-                    contenido_base64: contenidoBase64,
-                    mime_type: file.type,
-                    file: file // **IMPORTANTE**: Guardar el objeto File original
-                };
+               
                 fileNameDisplay.text(file.name);
                 previewBtn.removeClass("d-none");
                 removeBtn.removeClass("d-none");
@@ -529,7 +524,6 @@
     });
 
 
-
     // Referencias a los nuevos elementos HTML
     const numMultasInput = $("#num_multas");
     const individualMultasContainer = $("#individual_multas_container");
@@ -547,16 +541,35 @@
             let multaHtml = '<div class="row">';
             for (let i = 0; i < numMultas; i++) {
                 multaHtml += `
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Valor Multa ${i + 1}</label>
-                    <input type="number" class="form-control individual-multa-valor" placeholder="Valor" data-multa-index="${i}" min="0" value="0" />
-                </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Valor Multa ${i + 1}</label>
+                <input
+                    type="number"
+                    class="form-control individual-multa-valor"
+                    placeholder="Valor"
+                    data-multa-index="${i}"
+                    min="0"
+                    value="0"
+                />
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Archivo Multa ${i + 1}</label>
+                <input
+                    type="file"
+                    class="form-control individual-multa-file"
+                    data-multa-index="${i}"
+                    accept=".pdf,image/*"
+                />
+            </div>
             `;
             }
             multaHtml += '</div>';
             individualMultasContainer.append(multaHtml);
 
-            individualMultasContainer.find(".individual-multa-valor").on("input", calculateTotalMultas);
+            // Vuelve a enlazar el evento de cálculo de total
+            individualMultasContainer.find(".individual-multa-valor")
+                .off("input")
+                .on("input", calculateTotalMultas);
         }
         calculateTotalMultas();
     }
@@ -568,17 +581,20 @@
     function calculateTotalMultas() {
         let total = 0;
         individualMultasContainer.find(".individual-multa-valor").each(function () {
-            const valor = parseDecimal($(this).val()); // Usa parseDecimal
+            const valor = parseDecimal($(this).val()); // Usa tu función parseDecimal
             total += valor;
         });
         totalMultasDisplay.val(total.toFixed(2));
     }
 
+  
+
     // ====================================================================
     // Event Listeners e Inicialización (Multas)
     // ====================================================================
 
-    numMultasInput.on("input", renderMultasInputs);
+    // Enlaza la generación cada vez que cambie el número de multas
+    numMultasInput.on("change input", renderMultasInputs);
     renderMultasInputs();
     calculateTotalMultas();
 
@@ -1131,6 +1147,14 @@
             // Documentos
             this.appendDocumentData(formData);
 
+            // 4) Si hay documentos de valor comercial, forzamos la pestaña 'valores'
+            const valorDocsCount = Object.values(window.loadedValorFiles).filter(Boolean).length;
+            if (valorDocsCount > 0) {
+                console.log(`🔧 Forzando TabActual = 'valores' porque hay ${valorDocsCount} docs de valor comercial`);
+                formData.set('TabActual', 'valores');
+            }
+
+
             // Debug en desarrollo
             if (window.location.hostname === 'localhost') {
                 this.debugFormData(formData);
@@ -1140,8 +1164,8 @@
         }
 
         appendBasicFormData(formData, esGuardadoParcial) {
-            formData.append('es_guardado_parcial', esGuardadoParcial);
-            formData.append('tab_actual', this.currentTab);
+            formData.append('EsGuardadoParcial', esGuardadoParcial);
+            formData.append('TabActual', this.currentTab);
             formData.append('casoId', this.casoId || '');
             formData.append('usuarioId', this.usuarioId || '');
             formData.append('aseguradoId', this.aseguradoId || '');
@@ -1298,6 +1322,9 @@
             const valoresDocs = this.prepareCommercialValueDocuments();
             this.appendDocumentList(formData, "DocumentosValorComercialInput", valoresDocs);
             console.log(`Documentos de valor comercial preparados: ${valoresDocs.length}`);
+
+            console.log("⚙️ prepareCommercialValueDocuments →", valoresDocs);
+
         }
 
         // MÉTODO NUEVO: prepareCaseDocuments
@@ -1917,7 +1944,6 @@
         // Limpiar campos después de agregar todos los archivos
         archivosDocumentoInput.val('');
         observacionesDocumentoTextarea.val('');
-        categoriaDocumentoSelect.val('');
     });
 
     // Evento: Eliminar Documentos (Delegación de Eventos)
@@ -2082,4 +2108,8 @@
     $(document).ready(() => {
         window.casoFinancieroManager = new CasoFinancieroManager();
     });
+
+   
+
+
 });

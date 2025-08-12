@@ -2,7 +2,7 @@
 {
     public class ResumenFinancieroDto
     {
-        public DateTime FechaLimitePagoSri { get; set; }
+        public DateTime FechaLimitePagoSri { get; set; } = DateTime.Today;
         public string FechaLimitePagoSriFormatted => FechaLimitePagoSri.ToString("yyyy-MM-dd");
         public int NumeroMultas { get; set; }
         public decimal ValorMultasTotal { get; set; }

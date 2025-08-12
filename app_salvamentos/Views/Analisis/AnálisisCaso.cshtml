@@ -16,6 +16,28 @@
       : Model.CasoDetalle.Resumen.FechaLimitePagoSriFormatted;
 }
 
+@{
+    // 1. Prepara los tipos por ámbito
+    var tiposCaso = Model.TiposDocumentoCaso ?? new List<SelectListItem>();
+    var tiposAsegurado = Model.TiposDocumentoAsegurado ?? new List<SelectListItem>();
+    var ambitos = new Dictionary<string, List<SelectListItem>>(StringComparer.OrdinalIgnoreCase)
+    {
+        { "CASO",      tiposCaso },
+        { "ASEGURADO", tiposAsegurado }
+    };
+
+    // 2. Asegura que AllDocuments nunca sea null y filtra
+    var allDocs = Model.AllDocuments
+                  ?? new List<DocumentoDetalleDto>();
+
+    var documentosFiltrados = allDocs
+        .Where(doc =>
+            doc != null
+            && !string.IsNullOrWhiteSpace(doc.ambito_documento)
+            && ambitos.ContainsKey(doc.ambito_documento)
+        )
+        .ToList();
+}
 <div class="row">
     <div class="col-12">
         <div class="card">
@@ -248,36 +270,28 @@
                             <hr class="my-4" />
 
                             <h6>📂 Documentos cargados:</h6>
+
                             <div class="row" id="listaDocumentos">
-                                @if (Model.AllDocuments != null && Model.AllDocuments.Any())
+                                @if (documentosFiltrados.Any())
                                 {
-                                    // Definir variables fuera del bucle, sin @{}
-                                    var tiposCaso = Model.TiposDocumentoCaso ?? new List<SelectListItem>();
-                                    var tiposAsegurado = Model.TiposDocumentoAsegurado ?? new List<SelectListItem>();
-                                    var ambitos = new Dictionary<string, List<SelectListItem>>
-                                {
-                                { "CASO", tiposCaso },
-                                { "ASEGURADO", tiposAsegurado }
-                                };
-
-                                    foreach (var doc in Model.AllDocuments)
+                                    @foreach (var doc in documentosFiltrados)
                                     {
-                                        if (doc == null) continue;
-
+                                        // Datos del archivo
                                         string fileName = doc.nombre_archivo ?? "";
                                         string fileMime = DocumentDisplayHelper.GetMimeTypeFromFileName(fileName);
                                         string iconClass = DocumentDisplayHelper.GetIconClass(fileMime);
                                         string colorClass = DocumentDisplayHelper.GetColorClass(fileMime);
 
-                                        string tipoDocumentoText = "Tipo Desconocido";
+                                        // Texto del tipo de documento
+                                        var listaTipos = ambitos[doc.ambito_documento];
+                                        string tipoDocumentoText = listaTipos
+                                        .FirstOrDefault(t => t.Value == doc.tipo_documento_id.ToString())
+                                        ?.Text
+                                        ?? "Tipo Desconocido";
 
-                                        if (ambitos.TryGetValue(doc.ambito_documento ?? "", out var listaTipos) && listaTipos != null)
-                                        {
-                                            tipoDocumentoText = listaTipos
-                                            .FirstOrDefault(t => t?.Value == doc.tipo_documento_id.ToString())?.Text
-                                            ?? "Tipo Desconocido";
-                                        }
-                                        <div class="col-md-4 col-sm-6 mb-3 fade-in-up" data-doc-id="@doc.documento_id" data-preview-url="@doc.RutaPublica">
+                                        <div class="col-md-4 col-sm-6 mb-3 fade-in-up"
+                                             data-doc-id="@doc.documento_id"
+                                             data-preview-url="@doc.RutaPublica">
                                             <div class="card border card-animate">
                                                 <div class="card-body">
                                                     <div class="d-flex align-items-center">
@@ -286,10 +300,17 @@
                                                         </div>
                                                         <div class="flex-grow-1">
                                                             <h6 class="mb-1 text-truncate">@fileName</h6>
-                                                            <small class="text-muted">@tipoDocumentoText (@doc.ambito_documento)</small>
+                                                            <small class="text-muted">
+                                                                @tipoDocumentoText (@doc.ambito_documento)
+                                                            </small>
                                                         </div>
                                                         <div class="flex-shrink-0">
-                                                            <button type="button" class="btn btn-sm btn-light p-0 remove-doc-btn" data-bs-toggle="tooltip" data-bs-placement="top" title="Eliminar" data-doc-id="@doc.documento_id">
+                                                            <button type="button"
+                                                                    class="btn btn-sm btn-light p-0 remove-doc-btn"
+                                                                    data-bs-toggle="tooltip"
+                                                                    data-bs-placement="top"
+                                                                    title="Eliminar"
+                                                                    data-doc-id="@doc.documento_id">
                                                                 <i class="ri-delete-bin-line text-danger"></i>
                                                             </button>
                                                             @if (!string.IsNullOrEmpty(doc.ruta_fisica))
@@ -307,15 +328,20 @@
                                                     </div>
                                                     @if (!string.IsNullOrEmpty(doc.observaciones))
                                                     {
-                                                        <p class="text-muted mt-2 mb-0 text-wrap"><small>Obs: @doc.observaciones</small></p>
+                                                        <p class="text-muted mt-2 mb-0 text-wrap">
+                                                            <small>Obs: @doc.observaciones</small>
+                                                        </p>
                                                     }
                                                 </div>
                                             </div>
                                         </div>
                                     }
                                 }
+                                else
+                                {
+                                    <p class="text-muted">No hay documentos de CASO o ASEGURADO.</p>
+                                }
                             </div>
-
                             <div class="d-flex justify-content-between mt-4">
                                 <button type="button" class="btn btn-secondary btn-prev-tab">
                                     <i class="ri-arrow-left-line align-bottom me-1"></i> Anterior
@@ -335,7 +361,12 @@
                                     <label class="form-label">
                                         Pago Matrícula SRI hasta
                                     </label>
-                                    <input type="date" class="form-control" id="fechalimitepago" value="@fechaLimitePago" />
+                             
+                                    <input asp-for="CasoDetalle.Resumen.FechaLimitePagoSri"
+                                           class="form-control"
+                                           type="date" id="fechalimitepago" />
+                                    <span asp-validation-for="CasoDetalle.Resumen.FechaLimitePagoSri"
+                                          class="text-danger"></span>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">
@@ -491,7 +522,11 @@
                                     <input type="number" class="form-control" id="total_multas_display"
                                            placeholder="Auto-calculado" readonly  value="@Model.CasoDetalle.Resumen.ValorMultasTotal"/>
                                 </div>
-
+                                <!-- NUEVO: Documentos de Valor Comercial -->
+                                <h6 class="mt-4">📂 Documentos de Valor Comercial:</h6>
+                                <div class="row g-3" id="listaValoresComerciales">
+                                    <!-- Aquí llenaremos desde JS -->
+                                </div>
                                 <hr class="my-2">
                                 <h5 class="mt-4">📝 Detalles del Avalúo</h5>
 

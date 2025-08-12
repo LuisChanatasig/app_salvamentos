@@ -10,13 +10,13 @@ namespace app_salvamentos.Controllers
     public class AnalisisController : Controller
     {
         private readonly CasosService _casoService;
-         private readonly SeleccionablesService _seleccionablesService;
-         private readonly EmailService _emailService;
+        private readonly SeleccionablesService _seleccionablesService;
+        private readonly EmailService _emailService;
         private readonly AnalisisService _financieroService; // Asegúrate de que este servicio esté inyectado si lo necesitas
         private readonly ILogger<CasosController> _logger;
         private readonly FileStorageSettings _fileStorageSettings;
 
-        public AnalisisController(CasosService casoService, ILogger<CasosController> logger,SeleccionablesService seleccionablesService, AnalisisService financieroService, FileStorageSettings fileStorageSettings, EmailService emailService)
+        public AnalisisController(CasosService casoService, ILogger<CasosController> logger, SeleccionablesService seleccionablesService, AnalisisService financieroService, FileStorageSettings fileStorageSettings, EmailService emailService)
         {
             _casoService = casoService;
             _logger = logger;
@@ -97,7 +97,7 @@ namespace app_salvamentos.Controllers
             catch (CasoServiceException ex)
             {
                 _logger.LogError(ex, "Error del servicio al obtener detalles del caso ID: {CasoId}. Mensaje: {Message}", id, ex.Message);
-                TempData["ErrorMessage"] = "Ocurrió un error al cargar los detalles del caso. Por favor, inténtelo de nuevo más tarde."+ex; // Quité 'ex' directo
+                TempData["ErrorMessage"] = "Ocurrió un error al cargar los detalles del caso. Por favor, inténtelo de nuevo más tarde." + ex; // Quité 'ex' directo
                 return RedirectToAction("CasosRegistrados", "Casos");
             }
             catch (Exception ex)
@@ -124,6 +124,13 @@ namespace app_salvamentos.Controllers
                 _logger.LogWarning("La solicitud no tiene datos de formulario. ContentType: {ContentType}", Request.ContentType);
                 return BadRequest(new { error = "La solicitud no contiene datos de formulario." });
             }
+
+            // 1) Loggear qué archivos vinieron realmente
+            _logger.LogInformation(
+                "📁 Request.Form.Files → Count={Count}; Names=[{Names}]",
+                Request.Form.Files.Count,
+                string.Join(", ", Request.Form.Files.Select(f => f.Name))
+            );
             if (!ModelState.IsValid)
             {
                 foreach (var kvp in ModelState)
@@ -196,6 +203,14 @@ namespace app_salvamentos.Controllers
                 await ProcessAndSaveDocuments(datosInput.DocumentosValorComercialInput, mainIdentifierFolder, "valores_comerciales", datosInput.CasoId, documentosValorComercialParaServicio, successfullyUploadedFilePaths);
                 await ProcessAndSaveDocuments(datosInput.DocumentosDanoInput, mainIdentifierFolder, "danos", datosInput.CasoId, documentosDanoParaServicio, successfullyUploadedFilePaths);
 
+
+                _logger.LogInformation(
+    "🔍 datosInput.DocumentosValorComercialInput → Count={Count}; Elementos=[{Indices}]",
+    datosInput.DocumentosValorComercialInput?.Count ?? 0,
+    datosInput.DocumentosValorComercialInput?
+        .Select((d, i) => $"{i}:{d.File?.FileName ?? "(no File)"}")
+        .ToArray() ?? Array.Empty<string>()
+);
                 // ===========================================================================================================
                 // Preparar DTO final para el servicio de DB y registrar datos
                 // ===========================================================================================================
@@ -217,7 +232,7 @@ namespace app_salvamentos.Controllers
                     FechaSolicitudAvaluo = datosInput.FechaSolicitudAvaluo,
 
                     Vehiculo = datosInput.Vehiculo,
-                
+
                     Resumen = datosInput.Resumen,
                     ValoresComerciales = datosInput.ValoresComerciales,
                     Danos = datosInput.Danos,
@@ -283,7 +298,7 @@ namespace app_salvamentos.Controllers
                         NombreArchivo = docInput.File.FileName,
                         RutaFisica = relativeFilePath, // Se guarda la ruta relativa en DB
                         Observaciones = docInput.Observaciones,
-                   
+
                     });
                 }
             }
@@ -361,28 +376,22 @@ namespace app_salvamentos.Controllers
                 throw new InvalidOperationException($"Extensión de archivo '{extension}' no permitida.");
             }
 
-            // Generar un nombre de archivo seguro para evitar colisiones
-            var originalFileName = Path.GetFileName(file.FileName);
-            string fileNameOnly = Path.GetFileNameWithoutExtension(originalFileName);
-            string safeFileName = originalFileName;
-            string fullPath = Path.Combine(uploadFolderPath, safeFileName);
-            int count = 1;
+            // Generar el nombre original
+            var safeFileName = Path.GetFileName(file.FileName);
+            var fullPath = Path.Combine(uploadFolderPath, safeFileName);
 
-            // Si el archivo ya existe, añade un contador (ej. "archivo (1).jpg")
-            while (System.IO.File.Exists(fullPath))
+            // Si ya existe, simplemente lo borramos para que FileMode.Create lo sobreescriba
+            if (System.IO.File.Exists(fullPath))
             {
-                safeFileName = $"{fileNameOnly} ({count}){extension}";
-                fullPath = Path.Combine(uploadFolderPath, safeFileName);
-                count++;
+                System.IO.File.Delete(fullPath);
             }
 
-            // Guardar el archivo en disco
+            // Y luego guardamos normalmente
             using (var stream = new FileStream(fullPath, FileMode.Create))
             {
                 await file.CopyToAsync(stream);
             }
-
-            _logger.LogInformation("Archivo guardado exitosamente en: {FullPath}", fullPath);
+            _logger.LogInformation("Archivo guardado (o actualizado) en: {FullPath}", fullPath);
 
             // Calcular la ruta relativa que se guardará en la base de datos:
             // Ejemplo: "Analisis_Financiero_XXX/Asegurados/archivo.jpg"

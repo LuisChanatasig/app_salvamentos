@@ -15,6 +15,8 @@
         public string? NotasAvaluo { get; set; }
         public DateTime? FechaSiniestro { get; set; }
         public DateTime? FechaSolicitudAvaluo { get; set; }
+        public bool EsGuardadoParcial { get; set; }
+        public string TabActual { get; set; }
 
         public VehiculoDto Vehiculo { get; set; }
 

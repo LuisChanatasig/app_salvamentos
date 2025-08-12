@@ -27,78 +27,76 @@ namespace app_salvamentos.Servicios
 
         public async Task RegistrarDatosCasoFinancieroAsync(DatosCasoFinancieroDto datos)
         {
+            // 1) Configurar la conexión y capturar los PRINT del SP
             using var connection = new SqlConnection(_dbContext.Database.GetConnectionString());
+            connection.InfoMessage += (sender, e) =>
+            {
+                // Cada línea de PRINT viene en e.Message
+                _logger.LogInformation("SP INFO: {Message}", e.Message.Trim());
+            };
+
             using var command = new SqlCommand("sp_RegistrarDatosCasoFinanciero_V3", connection)
             {
                 CommandType = CommandType.StoredProcedure
             };
 
-            // --- 1. Preparar TVPs para Documentos ---
-            var documentosCasoTable = new DataTable();
-            documentosCasoTable.Columns.Add("tipo_documento_id", typeof(int));
-            documentosCasoTable.Columns.Add("nombre_archivo", typeof(string));
-            documentosCasoTable.Columns.Add("ruta_fisica", typeof(string));
-            documentosCasoTable.Columns.Add("observaciones", typeof(string));
-            foreach (var doc in datos.DocumentosCaso)
+            // 2) Helper para construir un DataTable de documentos
+            DataTable BuildDocTable(IEnumerable<DocumentoDto> docs)
             {
-                documentosCasoTable.Rows.Add(doc.TipoDocumentoId, doc.NombreArchivo, doc.RutaFisica, doc.Observaciones);
+                var table = new DataTable();
+                table.Columns.Add("tipo_documento_id", typeof(int));
+                table.Columns.Add("nombre_archivo", typeof(string));
+                table.Columns.Add("ruta_fisica", typeof(string));
+                table.Columns.Add("observaciones", typeof(string));
+                foreach (var doc in docs)
+                {
+                    if (string.IsNullOrWhiteSpace(doc.NombreArchivo)) continue;
+                    table.Rows.Add(
+                        doc.TipoDocumentoId,
+                        doc.NombreArchivo,
+                        doc.RutaFisica ?? string.Empty,
+                        doc.Observaciones ?? string.Empty
+                    );
+                }
+                return table;
             }
 
-            var documentosAseguradoTable = new DataTable();
-            documentosAseguradoTable.Columns.Add("tipo_documento_id", typeof(int));
-            documentosAseguradoTable.Columns.Add("nombre_archivo", typeof(string));
-            documentosAseguradoTable.Columns.Add("ruta_fisica", typeof(string));
-            documentosAseguradoTable.Columns.Add("observaciones", typeof(string));
-            foreach (var doc in datos.DocumentosAsegurado)
-            {
-                documentosAseguradoTable.Rows.Add(doc.TipoDocumentoId, doc.NombreArchivo, doc.RutaFisica, doc.Observaciones);
-            }
+            // 3) Preparar los DataTables para cada TVP de documentos
+            var tblCasos = BuildDocTable(datos.DocumentosCaso);
+            var tblAsegurado = BuildDocTable(datos.DocumentosAsegurado);
+            var tblValorComer = BuildDocTable(datos.DocumentosValorComercial);
+            var tblDano = BuildDocTable(datos.DocumentosDano);
 
-            var documentosValorComercialTable = new DataTable();
-            documentosValorComercialTable.Columns.Add("tipo_documento_id", typeof(int));
-            documentosValorComercialTable.Columns.Add("nombre_archivo", typeof(string));
-            documentosValorComercialTable.Columns.Add("ruta_fisica", typeof(string));
-            documentosValorComercialTable.Columns.Add("observaciones", typeof(string));
-            foreach (var doc in datos.DocumentosValorComercial)
-            {
-                documentosValorComercialTable.Rows.Add(doc.TipoDocumentoId, doc.NombreArchivo, doc.RutaFisica, doc.Observaciones);
-            }
+            _logger.LogInformation("TVP DocumentosValorComercial filas: {Count}", tblValorComer.Rows.Count);
 
-            var documentosDanoTable = new DataTable();
-            documentosDanoTable.Columns.Add("tipo_documento_id", typeof(int));
-            documentosDanoTable.Columns.Add("nombre_archivo", typeof(string));
-            documentosDanoTable.Columns.Add("ruta_fisica", typeof(string));
-            documentosDanoTable.Columns.Add("observaciones", typeof(string));
-            foreach (var doc in datos.DocumentosDano)
-            {
-                documentosDanoTable.Rows.Add(doc.TipoDocumentoId, doc.NombreArchivo, doc.RutaFisica, doc.Observaciones);
-            }
+            // 4) Preparar los DataTables para los TVPs de datos principales
+            var tblValores = ToValoresComercialesTVP(datos.ValoresComerciales);
+            var tblDanos = ToDanosTVP(datos.Danos);
+            var tblPartes = ToPartesTVP(datos.Partes);
 
-            // --- 2. Añadir Parámetros al Comando SQL ---
-
-            // Parámetros OUTPUT/INPUTOUTPUT
-            var casoIdParam = new SqlParameter("@caso_id", SqlDbType.Int)
+            // 5) Parámetros OUTPUT / INPUTOUTPUT
+            var pCaso = new SqlParameter("@caso_id", SqlDbType.Int)
             {
                 Direction = ParameterDirection.InputOutput,
-                Value = datos.CasoId // Pasa el valor existente (0 para nuevo, ID para actualizar)
+                Value = datos.CasoId
             };
-            command.Parameters.Add(casoIdParam);
+            command.Parameters.Add(pCaso);
 
-            var aseguradoIdParam = new SqlParameter("@asegurado_id", SqlDbType.Int)
+            var pAseg = new SqlParameter("@asegurado_id", SqlDbType.Int)
             {
                 Direction = ParameterDirection.InputOutput,
                 Value = datos.AseguradoId
             };
-            command.Parameters.Add(aseguradoIdParam);
+            command.Parameters.Add(pAseg);
 
-            var vehiculoIdParam = new SqlParameter("@vehiculo_id", SqlDbType.Int)
+            var pVeh = new SqlParameter("@vehiculo_id", SqlDbType.Int)
             {
                 Direction = ParameterDirection.InputOutput,
                 Value = datos.VehiculoId
             };
-            command.Parameters.Add(vehiculoIdParam);
+            command.Parameters.Add(pVeh);
 
-            // Resto de parámetros de entrada
+            // 6) Parámetros del caso y asegurado
             command.Parameters.AddWithValue("@usuario_id", datos.UsuarioId);
             command.Parameters.AddWithValue("@fecha_siniestro", datos.FechaSiniestro);
             command.Parameters.AddWithValue("@metodo_avaluo", (object?)datos.MetodoAvaluo ?? DBNull.Value);
@@ -108,7 +106,7 @@ namespace app_salvamentos.Servicios
             command.Parameters.AddWithValue("@notas_avaluo", (object?)datos.NotasAvaluo ?? DBNull.Value);
             command.Parameters.AddWithValue("@asegurado_nombre", datos.NombreCompleto);
 
-            // Parámetros del Vehículo
+            // 7) Parámetros del vehículo
             var v = datos.Vehiculo;
             command.Parameters.AddWithValue("@placa", (object?)v.Placa ?? DBNull.Value);
             command.Parameters.AddWithValue("@marca", (object?)v.Marca ?? DBNull.Value);
@@ -128,46 +126,46 @@ namespace app_salvamentos.Servicios
             command.Parameters.AddWithValue("@radio_vehiculo", (object?)v.RadioVehiculo ?? DBNull.Value);
             command.Parameters.AddWithValue("@estado_vehiculo", (object?)v.EstadoVehiculo ?? DBNull.Value);
 
-            // Parámetros de TVP para las listas de documentos
+            // 8) Parámetros de los TVPs de documentos
             command.Parameters.Add(new SqlParameter("@DocumentosCasoTVP", SqlDbType.Structured)
             {
                 TypeName = "dbo.DocumentoCasoTableType",
-                Value = documentosCasoTable
+                Value = tblCasos
             });
             command.Parameters.Add(new SqlParameter("@DocumentosAseguradoTVP", SqlDbType.Structured)
             {
                 TypeName = "dbo.DocumentoAseguradoTableType",
-                Value = documentosAseguradoTable
+                Value = tblAsegurado
             });
             command.Parameters.Add(new SqlParameter("@DocumentosValorComercialTVP", SqlDbType.Structured)
             {
                 TypeName = "dbo.DocumentoValorComercialTableType",
-                Value = documentosValorComercialTable
+                Value = tblValorComer
             });
             command.Parameters.Add(new SqlParameter("@DocumentosDanoTVP", SqlDbType.Structured)
             {
                 TypeName = "dbo.DocumentoDanoTableType",
-                Value = documentosDanoTable
+                Value = tblDano
             });
 
-            // Parámetros para ValorComercial y Daños y Partes (TVPs)
+            // 9) Parámetros de los TVPs de datos principales
             command.Parameters.Add(new SqlParameter("@ValoresComercialesTVP", SqlDbType.Structured)
             {
                 TypeName = "dbo.TVP_ValoresComerciales",
-                Value = ToValoresComercialesTVP(datos.ValoresComerciales)
+                Value = tblValores
             });
             command.Parameters.Add(new SqlParameter("@DanosTVP", SqlDbType.Structured)
             {
                 TypeName = "dbo.TVP_Danos",
-                Value = ToDanosTVP(datos.Danos)
+                Value = tblDanos
             });
             command.Parameters.Add(new SqlParameter("@PartesTVP", SqlDbType.Structured)
             {
                 TypeName = "dbo.TVP_Partes",
-                Value = ToPartesTVP(datos.Partes)
+                Value = tblPartes
             });
 
-            // Parámetros de Resumen Financiero
+            // 10) Parámetros del resumen financiero
             var r = datos.Resumen;
             command.Parameters.AddWithValue("@fecha_limite_pago_sri", (object?)r.FechaLimitePagoSri ?? DBNull.Value);
             command.Parameters.AddWithValue("@numero_multas", (object?)r.NumeroMultas ?? DBNull.Value);
@@ -182,33 +180,51 @@ namespace app_salvamentos.Servicios
             command.Parameters.AddWithValue("@precio_base", (object?)r.PrecioBase ?? DBNull.Value);
             command.Parameters.AddWithValue("@precio_estimado_venta_vehiculo", (object?)r.PrecioEstimadoVentaVehiculo ?? DBNull.Value);
 
-            //// Parámetros opcionales para IDs de documentos relacionados
-            //command.Parameters.AddWithValue("@ValorComercialDocId", (object?)datos.ValorComercialDocId ?? DBNull.Value);
-            //command.Parameters.AddWithValue("@DanoDocId", (object?)datos.DanoDocId ?? DBNull.Value);
+            // 11) Parámetros de control de guardado
+            command.Parameters.AddWithValue("@es_guardado_parcial", datos.EsGuardadoParcial);
+            command.Parameters.AddWithValue("@tab_actual", datos.TabActual);
 
-            try
-            {
-                await connection.OpenAsync();
-                await command.ExecuteNonQueryAsync();
+            // 12) Ejecutar y recorrer los resultados
+            await connection.OpenAsync();
+            using var reader = await command.ExecuteReaderAsync();
 
-                // --- 3. Capturar los valores OUTPUT después de la ejecución ---
-                datos.CasoId = (int)casoIdParam.Value;
-                datos.AseguradoId = (int)aseguradoIdParam.Value;
-                datos.VehiculoId = (int)vehiculoIdParam.Value;
+            // Avanzamos hasta el result-set donde aparezca la columna "tipo_documento_id"
+            while (true)
+            {
+                if (reader.FieldCount > 0 &&
+                    reader.GetSchemaTable().Rows.Cast<DataRow>()
+                          .Any(rw => rw["ColumnName"]!.ToString() == "tipo_documento_id"))
+                {
+                    _logger.LogInformation("----- Contenido DocumentosValorComercialTVP -----");
+                    while (await reader.ReadAsync())
+                    {
+                        _logger.LogInformation(
+                            "TVP Row → tipo={Tipo}, archivo={Archivo}, ruta={Ruta}, obs={Obs}",
+                            reader["tipo_documento_id"],
+                            reader["nombre_archivo"],
+                            reader["ruta_fisica"],
+                            reader["observaciones"]
+                        );
+                    }
+                    break;
+                }
+                if (!await reader.NextResultAsync()) break;
+            }
 
-                _logger.LogInformation("Datos financieros y documentos registrados/actualizados exitosamente. IDs generados/actualizados: CasoId={CasoId}, AseguradoId={AseguradoId}, VehiculoId={VehiculoId}", datos.CasoId, datos.AseguradoId, datos.VehiculoId);
-            }
-            catch (SqlException ex)
-            {
-                _logger.LogError(ex, "Error SQL al registrar datos financieros para CasoId: {CasoId}. Mensaje: {Message}", datos.CasoId, ex.Message);
-                throw;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error inesperado al registrar datos financieros para CasoId: {CasoId}. Mensaje: {Message}", datos.CasoId, ex.Message);
-                throw;
-            }
+            // Consumir cualquier resto (mensajes PRINT o el SELECT final)
+            do { } while (await reader.NextResultAsync());
+
+            // 13) Capturar los OUTPUT
+            datos.CasoId = (int)pCaso.Value;
+            datos.AseguradoId = (int)pAseg.Value;
+            datos.VehiculoId = (int)pVeh.Value;
+
+            _logger.LogInformation(
+                "Datos guardados. CasoId={CasoId}, AseguradoId={AseguradoId}, VehiculoId={VehiculoId}",
+                datos.CasoId, datos.AseguradoId, datos.VehiculoId
+            );
         }
+
         private static DataTable ToValoresComercialesTVP(List<ValorComercialDto> valores)
         {
             var table = new DataTable();
